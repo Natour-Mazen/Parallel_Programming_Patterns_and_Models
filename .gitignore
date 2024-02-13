@@ -10,4 +10,5 @@ src
 utils
 build.bat
 build.sh
-CMakeLists
+CMakeLists.txt
+linux
