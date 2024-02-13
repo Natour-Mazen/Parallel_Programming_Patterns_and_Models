@@ -1,0 +1,13 @@
+*.i
+*.ii
+*.gpu
+*.ptx
+*.cubin
+*.fatbin
+.idea
+cmake-build-debug
+src
+utils
+build.bat
+build.sh
+CMakeLists
