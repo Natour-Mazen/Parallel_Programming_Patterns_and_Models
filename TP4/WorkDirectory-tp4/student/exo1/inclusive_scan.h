@@ -33,7 +33,8 @@ namespace OPP {
           const int start = i * chunkSize;
           const int last = std::min(start + chunkSize, fullSize);
 
-          if (start >= last) break;
+          if (start >= last)
+            break;
 
           futures.emplace_back(
           pool.push_task([start, last, aBegin, oBegin, functor]() {
