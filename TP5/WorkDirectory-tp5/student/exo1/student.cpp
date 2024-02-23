@@ -6,7 +6,7 @@ namespace {
 }
 
 bool StudentWorkImpl::isImplemented() const {
-	return false;
+	return true;
 }
 
 void StudentWorkImpl::run_partition_sequential(
@@ -14,5 +14,11 @@ void StudentWorkImpl::run_partition_sequential(
 	std::vector<int>& predicate,
 	std::vector<int>& output
 ) {
-	// TODO
+    int n = 0;
+    for (int i = 1; i >= 0; --i) {
+        for (size_t j = 0; j < input.size(); ++j) {
+            if (predicate[j] == i)
+                output[n++] = input[j];
+        }
+    }
 }
