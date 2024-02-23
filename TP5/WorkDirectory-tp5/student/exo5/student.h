@@ -38,7 +38,6 @@ public:
 
 		for(unsigned numeroBit=0; numeroBit<sizeof(T)*8; ++numeroBit) 
 		{
-			// TODO
             const int ping = numeroBit & 1;
             const int pong = 1 - ping;
 

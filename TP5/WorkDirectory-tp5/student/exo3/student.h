@@ -20,57 +20,58 @@ public:
     StudentWorkImpl& operator=(const StudentWorkImpl&) = default;
 
     template <typename T>
-    inline T extract(const T& v, const T& bit) {
-        if (bit == 0) return 1 - (v & 0x1u);
-        return 1 - ((v >> bit) & 0x1u);
+    inline unsigned extractAndInvertBit(const T& value, const T& bitPosition){
+        return 1 - ((value >> bitPosition) & 0x1u);
     }
 
     template <typename T>
     void run_radixSort_parallel(const std::vector<T>& input,
                                 std::vector<T>& output) {
-        const unsigned n = input.size();
 
-        using wrapper = std::reference_wrapper<std::vector<T>>;
-        std::vector<T> temp(n);
-        wrapper W[2] = {wrapper(output), wrapper(temp)};
+        const unsigned int InputVectorSize = input.size();
+
+        using VectorReference = std::reference_wrapper<std::vector<T>>;
+        std::vector<T> tempVector(InputVectorSize);
+        VectorReference vectors[2] = {VectorReference(output), VectorReference(tempVector)};
         std::copy(input.begin(), input.end(), output.begin());
 
-        std::vector<unsigned> iDown(n);
-        std::vector<unsigned> iUp(n);
+        std::vector<unsigned int> indicesDown(InputVectorSize);
+        std::vector<unsigned int> indicesUp(InputVectorSize);
 
-        for (T numeroBit = 0; numeroBit < sizeof(T) * 8; ++numeroBit) {
-            const int ping = numeroBit & 1;
-            const int pong = 1 - ping;
+        for (unsigned int bitNumber = 0; bitNumber < sizeof(T) * 8; ++bitNumber) {
+            const int pingIndex = bitNumber & 1;
+            const int pongIndex = 1 - pingIndex;
 
-            const std::vector<T>& in = W[ping].get();
+            const std::vector<T>& currentVector = vectors[pingIndex].get();
 
             const OPP::TransformIterator predicate = OPP::make_transform_iterator(
-                    in.begin(), std::function([this, &numeroBit](const T& v) -> T {
-                        return extract(v, numeroBit);
+                    currentVector.begin(), std::function([&bitNumber, this](const T& value) -> T {
+                        return extractAndInvertBit(value, bitNumber);
                     }));
 
-            OPP::exclusive_scan(predicate + 0, predicate + n, iDown.begin(),
-                                    std::plus<T>(), T(0));
+            OPP::exclusive_scan(predicate + 0, predicate + InputVectorSize, indicesDown.begin(),
+                                std::plus<T>(), T(0));
 
-            const OPP::TransformIterator not_predicate_reversed = OPP::make_transform_iterator(
-                    OPP::CountingIterator(1l),
-                    std::function([&predicate, &n](const T& a) -> T {
-                        return 1 - predicate[n - a];
+            const OPP::TransformIterator notPredicateReversed = OPP::make_transform_iterator(
+                    OPP::CountingIterator(1ul),
+                    std::function([&predicate, &InputVectorSize](const T& a) -> T {
+                        return 1 - predicate[InputVectorSize - a];
                     }));
 
-            OPP::inclusive_scan(not_predicate_reversed + 0,
-                                    not_predicate_reversed + n, iUp.rbegin(),
-                                    std::plus<T>());
+            OPP::inclusive_scan(notPredicateReversed + 0,
+                                notPredicateReversed + InputVectorSize, indicesUp.rbegin(),
+                                std::plus<T>());
 
             OPP::scatter(
-                    in.begin(), in.end(),
+                    currentVector.begin(), currentVector.end(),
                     OPP::make_transform_iterator(
-                            OPP::CountingIterator(0l),
-                            std::function([&predicate, &iDown, &iUp, &n](const T& a) -> T {
-                                if (predicate[a]) return iDown[a];
-                                return n - iUp[a];
+                            OPP::CountingIterator(0ul),
+                            std::function([&predicate, &indicesDown, &indicesUp, &InputVectorSize](const T& a) -> T {
+                                if (predicate[a])
+                                    return indicesDown[a];
+                                return InputVectorSize - indicesUp[a];
                             })),
-                    W[pong].get().begin());
+                    vectors[pongIndex].get().begin());
         }
     }
 
