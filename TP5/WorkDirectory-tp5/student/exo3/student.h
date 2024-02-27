@@ -11,69 +11,89 @@
 #include <vector>
 
 class StudentWorkImpl : public StudentWork {
-public:
-    bool isImplemented() const;
+ public:
+  bool isImplemented() const;
 
-    StudentWorkImpl() = default;
-    StudentWorkImpl(const StudentWorkImpl&) = default;
-    ~StudentWorkImpl() = default;
-    StudentWorkImpl& operator=(const StudentWorkImpl&) = default;
+  StudentWorkImpl() = default;
+  StudentWorkImpl(const StudentWorkImpl&) = default;
+  ~StudentWorkImpl() = default;
+  StudentWorkImpl& operator=(const StudentWorkImpl&) = default;
 
-    template <typename T>
-    inline unsigned extractAndInvertBit(const T& value, const T& bitPosition){
-        return 1 - ((value >> bitPosition) & 0x1u);
-    }
+  /**
+  * @brief Extracts and inverts the specified bit from a value.
+  *
+  * @param value The value from which to extract the bit.
+  * @param bitPosition The position of the bit to extract and invert.
+  * @return T The extracted and inverted bit.
+  */
+  template <typename T>
+  inline T extractAndInvertBit(const T& value, const T& bitPosition){
+      return 1 - ((value >> bitPosition) & 0x1u);
+  }
 
-    template <typename T>
+    template<typename T>
     void run_radixSort_parallel(const std::vector<T>& input,
                                 std::vector<T>& output) {
+        const unsigned size = input.size();
 
-        const unsigned int InputVectorSize = input.size();
-
-        using VectorReference = std::reference_wrapper<std::vector<T>>;
-        std::vector<T> tempVector(InputVectorSize);
-        VectorReference vectors[2] = {VectorReference(output), VectorReference(tempVector)};
+        // Define a wrapper for vector references to use in swapping
+        using wrapper = std::reference_wrapper<std::vector<T>>;
+        // Create two vectors: output and temp, and create wrappers for them
+        std::vector<T> temp(size);
+        wrapper array[2] = {wrapper(output), wrapper(temp)};
+        // Copy the input vector to the output vector
         std::copy(input.begin(), input.end(), output.begin());
 
-        std::vector<unsigned int> indicesDown(InputVectorSize);
-        std::vector<unsigned int> indicesUp(InputVectorSize);
+        // Define vectors to store indices for downsweep and upsweep
+        std::vector<unsigned> indicesDown(size);
+        std::vector<unsigned> indicesUp(size);
 
-        for (unsigned int bitNumber = 0; bitNumber < sizeof(T) * 8; ++bitNumber) {
-            const int pingIndex = bitNumber & 1;
-            const int pongIndex = 1 - pingIndex;
+        // Iterate through each bit of the elements
+        for (T bitNumber = 0; bitNumber < sizeof(T) * 8; ++bitNumber) {
+            const int ping = bitNumber & 1;
+            const int pong = 1 - ping;
 
-            const std::vector<T>& currentVector = vectors[pingIndex].get();
+            // Get the current array being processed
+            const std::vector<T>& currentArray = array[ping].get();
 
+            // Define a transform iterator for bit extraction and inversion
             const OPP::TransformIterator predicate = OPP::make_transform_iterator(
-                    currentVector.begin(), std::function([&bitNumber, this](const T& value) -> T {
+                    currentArray.begin(), std::function([this, &bitNumber](const T& value) -> T {
                         return extractAndInvertBit(value, bitNumber);
                     }));
 
-            OPP::exclusive_scan(predicate + 0, predicate + InputVectorSize, indicesDown.begin(),
+            // Perform exclusive scan (prefix sum) on the predicate
+            OPP::exclusive_scan(predicate + 0, predicate + size, indicesDown.begin(),
                                 std::plus<T>(), T(0));
 
-            const OPP::TransformIterator notPredicateReversed = OPP::make_transform_iterator(
-                    OPP::CountingIterator(1ul),
-                    std::function([&predicate, &InputVectorSize](const T& a) -> T {
-                        return 1 - predicate[InputVectorSize - a];
+            // Define a transform iterator for reversing and inverting the predicate
+            const OPP::TransformIterator not_predicate_reversed = OPP::make_transform_iterator(
+                    OPP::CountingIterator(1l),
+                    std::function([&predicate, &size](const T& a) -> T {
+                        return 1 - predicate[size - a];
                     }));
 
-            OPP::inclusive_scan(notPredicateReversed + 0,
-                                notPredicateReversed + InputVectorSize, indicesUp.rbegin(),
+            // Perform inclusive scan (prefix sum) on the reversed predicate
+            OPP::inclusive_scan(not_predicate_reversed + 0,
+                                not_predicate_reversed + size, indicesUp.rbegin(),
                                 std::plus<T>());
 
+            // Scatter the elements according to the computed indices
             OPP::scatter(
-                    currentVector.begin(), currentVector.end(),
+                    currentArray.begin(), currentArray.end(),
                     OPP::make_transform_iterator(
-                            OPP::CountingIterator(0ul),
-                            std::function([&predicate, &indicesDown, &indicesUp, &InputVectorSize](const T& a) -> T {
+                            OPP::CountingIterator(0l),
+                            std::function([&predicate, &indicesDown, &indicesUp, &size](const T& a) -> T {
                                 if (predicate[a])
                                     return indicesDown[a];
-                                return InputVectorSize - indicesUp[a];
+                                return size - indicesUp[a];
                             })),
-                    vectors[pongIndex].get().begin());
+                    array[pong].get().begin());
         }
     }
 
-    void check();
+  void check();
 };
+/**********************************/
+/*   AL NATOUR MAZEN, M1 Info CL  */
+/**********************************/

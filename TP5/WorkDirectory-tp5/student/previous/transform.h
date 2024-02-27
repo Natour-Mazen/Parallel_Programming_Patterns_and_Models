@@ -24,7 +24,7 @@ namespace OPP
         // Calculate the size of the full range
         auto fullSize = aEnd - aBegin;
         // Calculate the size of each chunk, which is the full size divided by the number of threads
-        auto chunkSize = (fullSize + OPP::nbThreads-1) / OPP::nbThreads;
+        auto chunkSize = (fullSize + nbTasks - 1) / nbTasks;
 
         // If the full size is less than the number of tasks, apply the functor to each element directly
         if (fullSize < nbTasks) {
@@ -32,6 +32,7 @@ namespace OPP
                 oBegin[iter - aBegin] = functor(*iter);
             return;
         }
+
         // Create a vector to hold the futures returned by the tasks
         std::vector<std::shared_future<void>> futures;
 
@@ -46,7 +47,7 @@ namespace OPP
 
             // Add a task to the thread pool. The task applies the functor to a range of elements
             futures.emplace_back(OPP::getDefaultThreadPool().push_task(
-                    [start, end, aBegin, oBegin, functor](){
+                    [start, end, aBegin, oBegin, functor](void) -> void{
                         for (auto iter = start; iter < end; ++iter)
                             oBegin[iter] = functor(aBegin[iter]);
                     }

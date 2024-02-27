@@ -5,10 +5,24 @@
 
 namespace 
 {
+    /**
+     * @brief Extracts and inverts the specified bit from a value.
+     *
+     * @param value The value from which to extract the bit.
+     * @param bitPosition The position of the bit to extract and invert.
+     * @return unsigned The extracted and inverted bit.
+     */
     unsigned extractAndInvertBit(unsigned value, unsigned bitPosition){
         return 1 - ((value >> bitPosition) & 0x1u);
     }
 
+    /**
+     * @brief Partitions the input vector based on the predicate vector sequentially.
+     *
+     * @param input The input vector to be partitioned.
+     * @param predicate The predicate vector used for partitioning.
+     * @param output The resulting partitioned vector.
+     */
     void run_partition_sequential(
             std::vector<unsigned>& input,
             std::vector<unsigned>& predicate,
@@ -32,31 +46,36 @@ void StudentWorkImpl::run_radixSort_sequential(
 	std::vector<unsigned>& input,
 	std::vector<unsigned>& output
 ) {
-	// utiliser l'algorithme vu en court/TD
-	// pour chaque bit, en partant du poids faible
-	//   calculer predicat = ième bit (c'est un MAP, séquentiel ici)
-	//   partitionner (séquentiellement)
-	// ... et c'est tout !
-	// Attention quand même : le partitionnement nécessite un tableau auxiliaire !!!
-	// Le plus simple est d'utiliser un nouveau tableau plus output (qui reçoit une copie de input)
-	using wrapper = std::reference_wrapper<std::vector<unsigned>>;
+    // Define a wrapper for vector references
+    using wrapper = std::reference_wrapper<std::vector<unsigned>>;
 
-	std::vector<unsigned> temp(input.size());
+    // Create a temporary vector with the same size as the input
+    std::vector<unsigned> temp(input.size());
 
-	wrapper T[2] = { wrapper(output), wrapper(temp) };
+    // Create wrapper references to 'output' and 'temp' vectors
+    wrapper T[2] = { wrapper(output), wrapper(temp) };
 
-	std::vector<unsigned> predicate(input.size());
+    // Create a vector to store predicates
+    std::vector<unsigned> predicate(input.size());
 
-	std::copy(input.begin(), input.end(), output.begin());
+    // Copy the input vector to the output vector
+    std::copy(input.begin(), input.end(), output.begin());
 
-	for(unsigned numeroBit=0; numeroBit<sizeof(unsigned)*8; ++numeroBit) 
-	{
-		const int ping = numeroBit & 1;
-		const int pong = 1 - ping;
+    // Iterate through each bit of the unsigned integer (assuming 32 bits for simplicity)
+    for(unsigned bitNumber = 0; bitNumber < sizeof (unsigned) * 8 ; ++bitNumber)
+    {
+        // Determine the indexes of the ping and pong arrays for swapping
+        const int ping = bitNumber & 1;
+        const int pong = 1 - ping;
 
+        // Calculate the predicate for each element based on the current bit
         for (size_t i = 0; i < input.size(); ++i)
-            predicate[i] = extractAndInvertBit(T[ping].get()[i], numeroBit);
+            predicate[i] = extractAndInvertBit(T[ping].get()[i], bitNumber);
 
-        run_partition_sequential(T[ping],predicate,T[pong]);
-	}
+        // Partition the input based on the predicate, storing the result in the pong array
+        run_partition_sequential(T[ping], predicate, T[pong]);
+    }
 }
+/**********************************/
+/*   AL NATOUR MAZEN, M1 Info CL  */
+/**********************************/
