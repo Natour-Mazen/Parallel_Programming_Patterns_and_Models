@@ -31,7 +31,6 @@ namespace OPP {
 
       std::vector<std::shared_future<void>> futures;
 
-
       for (int i = 0; i < nbTasks; ++i) {
         const int start = i * chunkSize;
         const int last = std::min(start + chunkSize, fullSize);

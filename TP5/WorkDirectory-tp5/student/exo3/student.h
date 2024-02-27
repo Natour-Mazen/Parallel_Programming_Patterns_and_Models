@@ -78,6 +78,7 @@ class StudentWorkImpl : public StudentWork {
                                 not_predicate_reversed + size, indicesUp.rbegin(),
                                 std::plus<T>());
 
+
             // Scatter the elements according to the computed indices
             OPP::scatter(
                     currentArray.begin(), currentArray.end(),
