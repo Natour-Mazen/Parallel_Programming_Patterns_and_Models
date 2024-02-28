@@ -24,8 +24,9 @@ namespace OPP
         const auto realNbThreads = std::min(fullSize, nbThreads);
         const auto chunkSize = (fullSize + realNbThreads-1) / realNbThreads;
 
-        // Define the type of elements in the input iterator
-        using T = typename InputIteratorType::value_type;
+        // Define the type of elements in the input/output iterator
+        using InputIteValType = typename InputIteratorType::value_type;
+        using OutputIteValType = typename OutputIteratorType::value_type;
 
         // Initialize barriers for synchronization
         Barrier barrier1(realNbThreads);
@@ -33,11 +34,11 @@ namespace OPP
         Barrier barrier3(realNbThreads);
 
         // Initialize vectors to store partial sums
-        std::vector<typename OutputIteratorType::value_type> sumsTrue(fullSize);
-        std::vector<typename OutputIteratorType::value_type> sumsFalse(fullSize);
+        std::vector<OutputIteValType> sumsTrue(fullSize);
+        std::vector<OutputIteValType> sumsFalse(fullSize);
 
-        std::vector<typename OutputIteratorType::value_type> partialSumsTrue(realNbThreads);
-        std::vector<typename OutputIteratorType::value_type> partialSumsFalse(realNbThreads);
+        std::vector<OutputIteValType> partialSumsTrue(realNbThreads);
+        std::vector<OutputIteValType> partialSumsFalse(realNbThreads);
 
 
         auto fun_thread = [&] (
@@ -47,7 +48,7 @@ namespace OPP
         ) -> void
         {
             // Calculate partial sums for true and false predicates
-            sumsTrue[begin] = T(0);
+            sumsTrue[begin] = InputIteValType(0);
             sumsFalse[fullSize - 1 - begin] = 1 - predBegin[fullSize - 1 - begin];
             for (size_t i = begin + 1; i < end; ++i) {
                 sumsTrue[i] = sumsTrue[i - 1] + predBegin[i - 1];
