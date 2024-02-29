@@ -26,12 +26,13 @@ namespace
           float* filter,
           const unsigned imageWidth,
           const unsigned imageHeight,
-          const unsigned filterWidth
+          const unsigned filterWidth,
+          size_t size
       ) {
     const unsigned tidX = blockIdx.x * blockDim.x + threadIdx.x;
     const unsigned tidY = blockIdx.y * blockDim.y + threadIdx.y;
 
-    if (tidX < imageWidth && tidY < imageHeight) {
+    if (tidX < size && tidY < size) {
       const unsigned tid = tidX + tidY * imageWidth;
       float3 res = make_float3(0.0f, 0.0f, 0.0f);
 
@@ -86,6 +87,7 @@ void StudentWorkImpl::run_filter(
       dev_filter.getDevicePointer(),
       imageWidth,
       imageHeight,
-      filterWidth
+      filterWidth,
+      size
   );
 }

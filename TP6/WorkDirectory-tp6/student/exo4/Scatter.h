@@ -15,7 +15,7 @@ namespace OPP {
       const unsigned tidX = blockIdx.x * blockDim.x + threadIdx.x;
       const unsigned tidY = blockIdx.y * blockDim.y + threadIdx.y;
 
-      if (tidX < size) {
+      if (tidX < size && tidY < size) {
         const unsigned offset = tidX + tidY * map.imageWidth;
 
         output[offset] = input[map[offset]];
