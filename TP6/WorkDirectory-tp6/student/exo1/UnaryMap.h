@@ -46,14 +46,18 @@ namespace OPP {
     template <typename Tsrc, typename Tdst, typename Functor>
     void UnaryMap(const Tsrc src, Tdst dst, const std::size_t size, const Functor &functor)
     {
-      // Attention : ici la taille des vecteurs n'est pas toujours un multiple du nombre de threads.
-      // Il faut donc corriger l'exemple du cours... avec un garde-fou !
-      
-      // TODO
-         constexpr int threadsPerBlock = 256;
-          int blocksPerGrid = (size + threadsPerBlock - 1) / threadsPerBlock;
+      int blockSize;
+      int minGridSize;
+      cudaOccupancyMaxPotentialBlockSize(&minGridSize, &blockSize, unary_map<Tsrc, Tdst, Functor>, 0, size);
 
-        unary_map<<<blocksPerGrid, threadsPerBlock>>>(src, dst, size, functor);
+      // Round up according to array size
+      size_t gridSize = (size + blockSize - 1) / blockSize;
+
+      // Launch the kernel
+      unary_map<<<gridSize, blockSize>>>(src, dst, size, functor);
+
+      // Wait for GPU to finish before accessing on host
+      cudaDeviceSynchronize();
     }
   } // namespace CUDA
 } // namespace OPP

@@ -34,7 +34,7 @@ BraceWrapping:
   AfterFunction: true
   AfterNamespace: false
 BreakBeforeBinaryOperators: None
-BreakBeforeBraces: Stroustrup
+#BreakBeforeBraces: Stroustrup
 BreakBeforeTernaryOperators: true
 # BreakConstructorInitializersBeforeComma: true
 BreakConstructorInitializers: BeforeColon

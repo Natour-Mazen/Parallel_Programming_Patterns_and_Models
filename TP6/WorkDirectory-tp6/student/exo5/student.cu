@@ -12,8 +12,57 @@ namespace
 	{
 		return make_float3(a.x+b.x, a.y+b.y, a.z+b.z);
 	}
+  // TODO
 
-	// TODO
+  __device__
+      float3 operator*(const float &a, const uchar3 &b)
+  {
+    return make_float3(a* b.x, a * b.y, a * b.z);
+  }
+  __global__
+      void kernelFilter(
+          const uchar3* const dev_input,
+          uchar3* const dev_output,
+          float* filter,
+          const unsigned imageWidth,
+          const unsigned imageHeight,
+          const unsigned filterWidth
+      ) {
+    const unsigned tidX = blockIdx.x * blockDim.x + threadIdx.x;
+    const unsigned tidY = blockIdx.y * blockDim.y + threadIdx.y;
+
+    if (tidX < imageWidth && tidY < imageHeight) {
+      const unsigned tid = tidX + tidY * imageWidth;
+      float3 res = make_float3(0.0f, 0.0f, 0.0f);
+
+      for (unsigned i = 0; i < filterWidth; i++) {
+        int X = tidX + i - filterWidth / 2;
+
+        if (X < 0) {
+          X = -X;
+        } else if (X > imageWidth) {
+          X = imageWidth - (X - imageWidth);
+        }
+
+        for (unsigned j = 0; j < filterWidth; j++) {
+          int Y = tidY + j - filterWidth / 2;
+
+          if (Y < 0) {
+            Y = -Y;
+          } else if (Y > imageHeight) {
+            Y = imageHeight - (Y - imageHeight);
+          }
+
+          res = res + filter[i * filterWidth + j] * dev_input[X + Y * imageWidth];
+        }
+      }
+
+      dev_output[tid] = make_uchar3(
+          static_cast<unsigned char>(res.x),
+          static_cast<unsigned char>(res.y),
+          static_cast<unsigned char>(res.z));
+    }
+  }
 }
 
 void StudentWorkImpl::run_filter(
@@ -25,4 +74,18 @@ void StudentWorkImpl::run_filter(
 	const unsigned filterWidth
 ) {
 	// TODO
+  const unsigned size = dev_inputImage.getNbElements();
+
+  const dim3 threads(32, 32);
+  const dim3 blocs((imageWidth + 32 - 1) / 32,
+                   (imageHeight + 32 - 1) / 32);
+
+  kernelFilter<<<blocs, threads>>>(
+      dev_inputImage.getDevicePointer(),
+      dev_outputImage.getDevicePointer(),
+      dev_filter.getDevicePointer(),
+      imageWidth,
+      imageHeight,
+      filterWidth
+  );
 }
