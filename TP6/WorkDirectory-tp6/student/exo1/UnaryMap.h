@@ -24,6 +24,10 @@ namespace OPP {
                               const FunctorType functor)
     {
       // TODO
+        const size_t idx = threadIdx.x + blockIdx.x * blockDim.x;
+        if (idx < size) {
+            dest[idx] = functor(src[idx]);
+        }
     }
 
     /**
@@ -46,6 +50,10 @@ namespace OPP {
       // Il faut donc corriger l'exemple du cours... avec un garde-fou !
       
       // TODO
+         constexpr int threadsPerBlock = 256;
+          int blocksPerGrid = (size + threadsPerBlock - 1) / threadsPerBlock;
+
+        unary_map<<<blocksPerGrid, threadsPerBlock>>>(src, dst, size, functor);
     }
   } // namespace CUDA
 } // namespace OPP
