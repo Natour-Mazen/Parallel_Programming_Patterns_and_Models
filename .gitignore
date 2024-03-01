@@ -12,3 +12,4 @@ build.bat
 build.sh
 CMakeLists.txt
 linux
+win32
