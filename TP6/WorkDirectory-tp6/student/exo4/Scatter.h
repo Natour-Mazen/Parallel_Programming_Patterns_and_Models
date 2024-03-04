@@ -11,7 +11,6 @@ namespace OPP {
                                   Functor map,
                                   const size_t size)
     {
-      // TODO
       const unsigned tidX = blockIdx.x * blockDim.x + threadIdx.x;
       const unsigned tidY = blockIdx.y * blockDim.y + threadIdx.y;
 
@@ -27,13 +26,6 @@ namespace OPP {
                           OPP::CUDA::DeviceBuffer<T> &dev_output,
                           Functor &map)
     {
-      // TODO
-     /* int blockSize = 256;
-      int numBlocks = (dev_input.getNbElements() + blockSize - 1) / blockSize;
-      kernelScatter<<<numBlocks, blockSize>>>(dev_input.getDevicePointer(),
-                                              dev_output.getDevicePointer(),
-                                              map,
-                                              dev_input.getNbElements());*/
       const dim3 threads(32, 32);
       const dim3 blocs((map.imageWidth + 32 - 1) / 32,
                        (map.imageHeight + 32 - 1) / 32);
@@ -48,5 +40,9 @@ namespace OPP {
     }
   } // namespace CUDA
 } // namespace OPP
+
+/**********************************/
+/*   AL NATOUR MAZEN, M1 Info CL  */
+/**********************************/
 
 #endif
