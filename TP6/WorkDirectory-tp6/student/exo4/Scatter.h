@@ -11,13 +11,10 @@ namespace OPP {
                                   Functor map,
                                   const size_t size)
     {
-      const unsigned tidX = blockIdx.x * blockDim.x + threadIdx.x;
-      const unsigned tidY = blockIdx.y * blockDim.y + threadIdx.y;
+      const unsigned tid = blockIdx.x * blockDim.x + threadIdx.x;
 
-      if (tidX < size && tidY < size) {
-        const unsigned offset = tidX + tidY * map.imageWidth;
-
-        output[offset] = input[map[offset]];
+      if (tid < size) {
+        output[map[tid]] = input[tid];
       }
     }
 
@@ -26,17 +23,18 @@ namespace OPP {
                           OPP::CUDA::DeviceBuffer<T> &dev_output,
                           Functor &map)
     {
-      const dim3 threads(32, 32);
-      const dim3 blocs((map.imageWidth + 32 - 1) / 32,
-                       (map.imageHeight + 32 - 1) / 32);
+      const size_t size = dev_input.getNbElements();
+      const dim3 threads(1024);
+      const dim3 blocs = (size + threads.x - 1) / threads.x;
 
       kernelScatter<<<blocs, threads>>>(
           dev_input.getDevicePointer(),
           dev_output.getDevicePointer(),
           map,
-          dev_input.getNbElements()
+          size
       );
       cudaDeviceSynchronize();
+
     }
   } // namespace CUDA
 } // namespace OPP

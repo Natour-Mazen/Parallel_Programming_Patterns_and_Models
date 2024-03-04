@@ -32,7 +32,7 @@ namespace
     const unsigned tidX = blockIdx.x * blockDim.x + threadIdx.x;
     const unsigned tidY = blockIdx.y * blockDim.y + threadIdx.y;
 
-    if (tidX < size && tidY < size) {
+    if (tidX < imageWidth && tidY < imageHeight) {
       const unsigned tid = tidX + tidY * imageWidth;
       float3 res = make_float3(0.0f, 0.0f, 0.0f);
 
@@ -90,6 +90,7 @@ void StudentWorkImpl::run_filter(
       filterWidth,
       size
   );
+  cudaDeviceSynchronize();
 }
 /**********************************/
 /*   AL NATOUR MAZEN, M1 Info CL  */
