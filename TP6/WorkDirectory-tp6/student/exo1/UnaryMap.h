@@ -23,7 +23,6 @@ namespace OPP {
                               const std::size_t size,
                               const FunctorType functor)
     {
-      // TODO
         const size_t idx = threadIdx.x + blockIdx.x * blockDim.x;
         if (idx < size) {
             dest[idx] = functor(src[idx]);
