@@ -14,3 +14,4 @@ CMakeLists.txt
 linux
 win32
 Images
+cmake-build-release
