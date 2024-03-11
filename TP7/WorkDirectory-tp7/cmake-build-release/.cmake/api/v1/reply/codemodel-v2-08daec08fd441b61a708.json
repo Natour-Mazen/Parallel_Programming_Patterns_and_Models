@@ -1,0 +1,96 @@
+{
+	"configurations" : 
+	[
+		{
+			"directories" : 
+			[
+				{
+					"build" : ".",
+					"jsonFile" : "directory-.-Release-d0094a50bb2071803777.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.0.0"
+					},
+					"projectIndex" : 0,
+					"source" : ".",
+					"targetIndexes" : 
+					[
+						0,
+						1,
+						2,
+						3,
+						4
+					]
+				}
+			],
+			"name" : "Release",
+			"projects" : 
+			[
+				{
+					"directoryIndexes" : 
+					[
+						0
+					],
+					"name" : "APR_TP7",
+					"targetIndexes" : 
+					[
+						0,
+						1,
+						2,
+						3,
+						4
+					]
+				}
+			],
+			"targets" : 
+			[
+				{
+					"directoryIndex" : 0,
+					"id" : "exo1::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-exo1-Release-6ff5cb636795288e4d4f.json",
+					"name" : "exo1",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "exo2::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-exo2-Release-99c2fb4f3a9adcde82a9.json",
+					"name" : "exo2",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "exo3::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-exo3-Release-ba291de7d45f733468bd.json",
+					"name" : "exo3",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "exo4::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-exo4-Release-27adf213a8a8b11ed7d3.json",
+					"name" : "exo4",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "exo5::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-exo5-Release-389cfd57664526bc05e6.json",
+					"name" : "exo5",
+					"projectIndex" : 0
+				}
+			]
+		}
+	],
+	"kind" : "codemodel",
+	"paths" : 
+	{
+		"build" : "C:/Users/Utilisateur/Desktop/APR/TPs/TP7/WorkDirectory-tp7/cmake-build-release",
+		"source" : "C:/Users/Utilisateur/Desktop/APR/TPs/TP7/WorkDirectory-tp7"
+	},
+	"version" : 
+	{
+		"major" : 2,
+		"minor" : 6
+	}
+}

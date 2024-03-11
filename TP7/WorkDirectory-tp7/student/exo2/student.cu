@@ -30,10 +30,11 @@ namespace
 
 		for(unsigned i=0; i<nbPixelsPerThread; ++i) 
 		{
+      // TODO
 			// indice du pixel à traiter (consécutifs pour un thread!)
 			const auto pixelIdInBlock = nbPixelsPerThread * localThreadId + i;
-			
-			// TODO
+
+      sumPerThread += data[pixelIdInBlock + globalOffset];
 		}
 		shared[localThreadId] = sumPerThread;
 		__syncthreads();
@@ -41,14 +42,19 @@ namespace
 
 
 	// idem exo1, sauf test de débordement
-	template<int NB_WARPS>
-	__device__ 
-	__forceinline__
-	void reduceJumpingStep(const int jump)
-	{
-		// TODO 
-	}
-
+  template<int NB_WARPS>
+  __device__
+      __forceinline__
+      void reduceJumpingStep(const int jump)
+  {
+    // TODO
+    float *const shared = OPP::CUDA::getSharedMemory<float>();
+    const auto tid = threadIdx.x;
+    if((tid % (jump<<1)) == 0 && tid + jump < 32*NB_WARPS){
+      shared[tid] += shared[tid+jump];
+    }
+    __syncthreads();
+  }
 
 	// on ne changera ici que le nombre d'itérations (10 avant, ici moins)
 	template<int NB_WARPS>
@@ -58,7 +64,14 @@ namespace
 		float const*const source
 	) {
 		// TODO
-	}	
+    float*const shared = OPP::CUDA::getSharedMemory<float>();
+    loadSharedMemoryAssociate<NB_WARPS>(source);
+    for(int i=1; i<32*NB_WARPS; i<<=1){
+      reduceJumpingStep<NB_WARPS>(i);
+    }
+
+    return shared[0];
+	}
 	
 
 	// ressemble beaucoup à l'exo1 ...
@@ -72,6 +85,12 @@ namespace
 		// calcul de l'offset du bloc : la taille est 1024
 		const auto offset = blockIdx.x * 1024;
 		// TODO
+    unsigned tid = threadIdx.x;
+
+    while (tid < 1024) {
+      result[tid + offset] = color;
+      tid += 32 * NB_WARPS;
+    }
 	}
 
 

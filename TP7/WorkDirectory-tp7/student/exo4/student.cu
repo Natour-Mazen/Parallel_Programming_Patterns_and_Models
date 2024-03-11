@@ -13,6 +13,17 @@ namespace
 	void loadSharedMemoryCommutative(float const*const data) 
 	{
 		// TODO
+    float *const shared = OPP::CUDA::getSharedMemory<float>();
+    float sum = 0.f;
+    const unsigned globalOffset = blockIdx.x * 1024;
+    for (auto tid = threadIdx.x; tid < 1024; tid += 32 * NB_WARPS)
+    {
+      // TODO
+      sum += data[tid + globalOffset];
+    }
+    const auto localThreadId = threadIdx.x;
+    shared[localThreadId] = sum;
+    __syncthreads();
 	}
 
 	// nouvelle version :-)
@@ -21,6 +32,12 @@ namespace
 	void reduceJumpingStep(const int jump)
 	{
 		// TODO
+    float *const shared = OPP::CUDA::getSharedMemory<float>();
+    const auto tid = threadIdx.x;
+    if(tid < jump){
+      shared[tid] += shared[tid+jump];
+    }
+    __syncthreads();
 	}
 
 	// similaire précédente, mais boucle différente (les threads qui travaillent sont en tête ...)
@@ -31,6 +48,12 @@ namespace
 		float const*const source
 	) {
 		// TODO
+    float*const shared = OPP::CUDA::getSharedMemory<float>();
+    loadSharedMemoryCommutative<NB_WARPS>(source);
+    for(int i= 32 * NB_WARPS / 2 ; i > 0; i>>=1){
+      reduceJumpingStep(i);
+    }
+    return shared[0];
 	}
 
 	
@@ -43,6 +66,16 @@ namespace
 		float*const result
 	) {
 		// TODO
+    // TODO
+    // calcul de l'offset du bloc : la taille est 1024
+    const auto offset = blockIdx.x * 1024;
+    // TODO
+    unsigned tid = threadIdx.x;
+
+    while (tid < 1024) {
+      result[tid + offset] = color;
+      tid += 32 * NB_WARPS;
+    }
 	}
 
 

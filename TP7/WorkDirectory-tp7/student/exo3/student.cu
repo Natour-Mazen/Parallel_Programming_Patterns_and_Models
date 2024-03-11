@@ -21,6 +21,7 @@ namespace
 		for (auto tid = threadIdx.x; tid < 1024; tid += 32 * NB_WARPS)
 		{
 			// TODO
+      sum += data[tid + globalOffset];
 		}
 		const auto localThreadId = threadIdx.x;
 		shared[localThreadId] = sum;
@@ -34,6 +35,12 @@ namespace
 		reduceJumpingStep(const int jump)
 	{
 		// TODO
+    float *const shared = OPP::CUDA::getSharedMemory<float>();
+    const auto tid = threadIdx.x;
+    if((tid % (jump<<1)) == 0 && tid + jump < 32*NB_WARPS){
+      shared[tid] += shared[tid+jump];
+    }
+    __syncthreads();
 	}
 
 	// Idem exo2, sauf le nom de la fonction de chargement ;-)
@@ -44,6 +51,12 @@ namespace
 			float const *const source)
 	{
 		// TODO
+    float*const shared = OPP::CUDA::getSharedMemory<float>();
+    loadSharedMemoryCommutative<NB_WARPS>(source);
+    for(int i=1; i<32*NB_WARPS; i<<=1){
+      reduceJumpingStep<NB_WARPS>(i);
+    }
+    return shared[0];
 	}
 
 	// idem exo2
@@ -55,6 +68,15 @@ namespace
 			float *const result)
 	{
 		// TODO
+    // calcul de l'offset du bloc : la taille est 1024
+    const auto offset = blockIdx.x * 1024;
+    // TODO
+    unsigned tid = threadIdx.x;
+
+    while (tid < 1024) {
+      result[tid + offset] = color;
+      tid += 32 * NB_WARPS;
+    }
 	}
 
 	// idem exo2

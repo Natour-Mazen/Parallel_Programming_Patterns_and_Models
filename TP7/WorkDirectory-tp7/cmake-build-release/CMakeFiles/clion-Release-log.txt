@@ -1,0 +1,29 @@
+"C:\Program Files\JetBrains\CLion 2023.3.3\bin\cmake\win\x64\bin\cmake.exe" -DCMAKE_BUILD_TYPE=Release "-DCMAKE_MAKE_PROGRAM=C:/Program Files/JetBrains/CLion 2023.3.3/bin/ninja/win/x64/ninja.exe" -G Ninja -S C:\Users\Utilisateur\Desktop\APR\TPs\TP7\WorkDirectory-tp7 -B C:\Users\Utilisateur\Desktop\APR\TPs\TP7\WorkDirectory-tp7\cmake-build-release
+CMake Deprecation Warning at CMakeLists.txt:1 (cmake_minimum_required):
+  Compatibility with CMake < 3.5 will be removed from a future version of
+  CMake.
+
+  Update the VERSION argument <min> value or use a ...<max> suffix to tell
+  CMake that the project does not need compatibility with older versions.
+
+
+INFO: Number of logical cores: 8
+INFO: processor description: 4 core AMD Ryzen 7 3750H with Radeon Vega Mobile Gfx 
+INFO: OS platform: AMD64
+INFO: System name: Windows
+-- The CUDA compiler identification is NVIDIA 12.3.107
+-- The CXX compiler identification is MSVC 19.36.32543.0
+-- Detecting CUDA compiler ABI info
+-- Detecting CUDA compiler ABI info - done
+-- Check for working CUDA compiler: C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.3/bin/nvcc.exe - skipped
+-- Detecting CUDA compile features
+-- Detecting CUDA compile features - done
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: C:/Program Files/Microsoft Visual Studio/2022/Community/VC/Tools/MSVC/14.36.32532/bin/Hostx64/x64/cl.exe - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- CUDA architectures set to 50;60;70;75
+-- Configuring done (33.2s)
+-- Generating done (0.1s)
+-- Build files have been written to: C:/Users/Utilisateur/Desktop/APR/TPs/TP7/WorkDirectory-tp7/cmake-build-release

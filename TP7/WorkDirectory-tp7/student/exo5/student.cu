@@ -12,7 +12,18 @@ namespace
 	__forceinline__
 	void loadSharedMemoryCommutative(float const*const data) 
 	{
-		// TODO
+    // TODO
+    float *const shared = OPP::CUDA::getSharedMemory<float>();
+    float sum = 0.f;
+    const unsigned globalOffset = blockIdx.x * 1024;
+    for (auto tid = threadIdx.x; tid < 1024; tid += 32 * NB_WARPS)
+    {
+      // TODO
+      sum += data[tid + globalOffset];
+    }
+    const auto localThreadId = threadIdx.x;
+    shared[localThreadId] = sum;
+    __syncthreads();
 	}
 
 	// idem exo4
@@ -20,10 +31,17 @@ namespace
 	__forceinline__
 	void reduceJumpingStep(const int jump)
 	{
-		// TODO
+    // TODO
+    float *const shared = OPP::CUDA::getSharedMemory<float>();
+    const auto tid = threadIdx.x;
+    if(tid < jump){
+      shared[tid] += shared[tid+jump];
+    }
+    __syncthreads();
 	}
 
 	// nouvelle fonction !
+  template<int NB_WARPS>
 	__device__ 
 	__forceinline__
 	void reduceLastWarp()
@@ -31,13 +49,16 @@ namespace
 		// attention au mot clé volatile ... essentiel !
 		volatile float*const shared = OPP::CUDA::getSharedMemory<float>();
 		const auto tid = threadIdx.x;
-		if( tid < 32 ) 
+		if( tid < 32 )
 		{
 			// TODO
+      for(int i= (NB_WARPS == 1 ? 16 : 32)  ; i > 0 ; i>>=1){
+        shared[tid] += shared[tid + i];
+      }
 		}
 		__syncthreads();
-		
 	}
+
 	
 	// 
 	template<int NB_WARPS>
@@ -47,6 +68,14 @@ namespace
 		float const*const source
 	) {
 		// TODO
+    float*const shared = OPP::CUDA::getSharedMemory<float>();
+    loadSharedMemoryCommutative<NB_WARPS>(source);
+    for(int i= 32 * NB_WARPS / 2 ; i > 32; i>>=1){
+      reduceJumpingStep(i);
+    }
+
+    reduceLastWarp<NB_WARPS>();
+    return shared[0];
 	}
 
 	
@@ -58,7 +87,16 @@ namespace
 		const float color, 
 		float*const result
 	) {
-		// TODO
+    // TODO
+    // calcul de l'offset du bloc : la taille est 1024
+    const auto offset = blockIdx.x * 1024;
+    // TODO
+    unsigned tid = threadIdx.x;
+
+    while (tid < 1024) {
+      result[tid + offset] = color;
+      tid += 32 * NB_WARPS;
+    }
 	}
 
 
@@ -111,7 +149,6 @@ void StudentWorkImpl::run_blockEffect(
 	dim3 threads(32*nbWarps);
 	dim3 blocks((size + 1023) / 1024);
 	const size_t sizeSharedMemory(threads.x*sizeof(float));
-
 	switch(nbWarps) {
 		case 1:
 			::blockEffectKernel<1> <<<blocks, threads, sizeSharedMemory>>>(

@@ -35,6 +35,11 @@ namespace
 	void reduceJumpingStep(const int jump)
 	{
 		// TODO
+    auto * const shared = OPP::CUDA::getSharedMemory<float>();
+    const auto tid = threadIdx.x;
+    if((tid % (jump<<1)) == 0)
+      shared[tid] += shared[tid+jump];
+    __syncthreads();
 	}
 
 	//
@@ -44,6 +49,11 @@ namespace
 		float const*const source
 	) {
 		// TODO
+    auto * const shared = OPP::CUDA::getSharedMemory<float>();
+    loadSharedMemory(source);
+    for(int i=1; i<1024; i<<=1)
+      reduceJumpingStep(i);
+    return shared[0];
 	}
 
 	//
