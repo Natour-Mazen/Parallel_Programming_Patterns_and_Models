@@ -34,11 +34,16 @@ namespace
 	__forceinline__
 	void reduceJumpingStep(const int jump)
 	{
-		// TODO
+    // Get a pointer to the shared memory for this block
     auto * const shared = OPP::CUDA::getSharedMemory<float>();
+    // Get the thread ID within the block
     const auto tid = threadIdx.x;
-    if((tid % (jump<<1)) == 0)
+    // If the thread ID is a multiple of twice the jump value,
+    // add the element at position 'tid + jump' to the element at position 'tid'
+    if((tid % (jump<<1)) == 0){
       shared[tid] += shared[tid+jump];
+    }
+    // Synchronize to make sure all computations at this stage are done before proceeding
     __syncthreads();
 	}
 
@@ -48,11 +53,14 @@ namespace
 	float reducePerBlock(
 		float const*const source
 	) {
-		// TODO
+    // Get a pointer to the shared memory for this block
     auto * const shared = OPP::CUDA::getSharedMemory<float>();
+    // Load data from global memory to shared memory
     loadSharedMemory(source);
+    // Perform the reduction in a loop, halving the number of active threads in each iteration
     for(int i=1; i<1024; i<<=1)
       reduceJumpingStep(i);
+    // At the end of the reduction, the result is stored in the first element of the shared memory
     return shared[0];
 	}
 
@@ -95,3 +103,6 @@ void StudentWorkImpl::run_blockEffect(
 		dev_result.getDevicePointer()
 	);
 }
+/**********************************/
+/*   AL NATOUR MAZEN, M1 Info CL  */
+/**********************************/

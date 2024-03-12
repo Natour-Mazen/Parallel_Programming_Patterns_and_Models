@@ -32,8 +32,10 @@ namespace
 		{
       // TODO
 			// indice du pixel à traiter (consécutifs pour un thread!)
+      // Calculate the index of the pixel to be processed
 			const auto pixelIdInBlock = nbPixelsPerThread * localThreadId + i;
 
+      // Add the value of the pixel to the sum
       sumPerThread += data[pixelIdInBlock + globalOffset];
 		}
 		shared[localThreadId] = sumPerThread;
@@ -42,14 +44,21 @@ namespace
 
 
 	// idem exo1, sauf test de débordement
+  /** This function performs a reduction step by adding elements in shared memory
+   * with a certain 'jump' distance. It is executed by all threads in a block.
+   *It also checks for out-of-bounds accesses.
+   * */
   template<int NB_WARPS>
   __device__
       __forceinline__
       void reduceJumpingStep(const int jump)
   {
-    // TODO
+    // Get a pointer to the shared memory for this block
     float *const shared = OPP::CUDA::getSharedMemory<float>();
+    // Get the thread ID within the block
     const auto tid = threadIdx.x;
+    // If the thread ID is a multiple of twice the jump value and the index is within bounds,
+    // add the element at position 'tid + jump' to the element at position 'tid'
     if((tid % (jump<<1)) == 0 && tid + jump < 32*NB_WARPS){
       shared[tid] += shared[tid+jump];
     }
@@ -57,15 +66,18 @@ namespace
   }
 
 	// on ne changera ici que le nombre d'itérations (10 avant, ici moins)
+  /** This function performs a block-wise reduction on the input data
+    * It uses a different number of iterations compared to the previous version
+    * */
 	template<int NB_WARPS>
 	__device__
 	__forceinline__
 	float reducePerBlock(
 		float const*const source
 	) {
-		// TODO
     float*const shared = OPP::CUDA::getSharedMemory<float>();
     loadSharedMemoryAssociate<NB_WARPS>(source);
+    // Perform the reduction in a loop, halving the number of active threads in each iteration
     for(int i=1; i<32*NB_WARPS; i<<=1){
       reduceJumpingStep<NB_WARPS>(i);
     }
@@ -75,6 +87,9 @@ namespace
 	
 
 	// ressemble beaucoup à l'exo1 ...
+  /** This function fills a block in the result array with a certain color
+   * It is similar to the previous version
+   * */
 	template<int NB_WARPS>
 	__device__
 	__forceinline__
@@ -84,9 +99,9 @@ namespace
 	) {
 		// calcul de l'offset du bloc : la taille est 1024
 		const auto offset = blockIdx.x * 1024;
-		// TODO
+    // Get the thread ID within the block
     unsigned tid = threadIdx.x;
-
+    // Each thread fills multiple elements in the result array with the color
     while (tid < 1024) {
       result[tid + offset] = color;
       tid += 32 * NB_WARPS;
@@ -195,3 +210,6 @@ void StudentWorkImpl::run_blockEffect(
 	}
 
 }
+/**********************************/
+/*   AL NATOUR MAZEN, M1 Info CL  */
+/**********************************/

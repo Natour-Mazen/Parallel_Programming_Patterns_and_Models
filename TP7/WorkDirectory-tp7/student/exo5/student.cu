@@ -12,13 +12,11 @@ namespace
 	__forceinline__
 	void loadSharedMemoryCommutative(float const*const data) 
 	{
-    // TODO
     float *const shared = OPP::CUDA::getSharedMemory<float>();
     float sum = 0.f;
     const unsigned globalOffset = blockIdx.x * 1024;
     for (auto tid = threadIdx.x; tid < 1024; tid += 32 * NB_WARPS)
     {
-      // TODO
       sum += data[tid + globalOffset];
     }
     const auto localThreadId = threadIdx.x;
@@ -27,13 +25,18 @@ namespace
 	}
 
 	// idem exo4
+  /** This function performs a reduction step by adding elements in shared memory
+   * with a certain 'jump' distance. It is executed by all threads in a block.
+   * It also checks for out-of-bounds accesses.
+    * */
 	__device__ 
 	__forceinline__
 	void reduceJumpingStep(const int jump)
 	{
-    // TODO
     float *const shared = OPP::CUDA::getSharedMemory<float>();
     const auto tid = threadIdx.x;
+    // If the thread ID is less than the jump value,
+    // add the element at position 'tid + jump' to the element at position 'tid'
     if(tid < jump){
       shared[tid] += shared[tid+jump];
     }
@@ -41,17 +44,26 @@ namespace
 	}
 
 	// nouvelle fonction !
+  /**
+   *This function performs the last reduction step within a warp.
+   * It uses volatile shared memory to ensure that all memory operations are completed as expected.
+   */
   template<int NB_WARPS>
 	__device__ 
 	__forceinline__
 	void reduceLastWarp()
 	{
 		// attention au mot clé volatile ... essentiel !
+    // Get a pointer to the shared memory for this block
+    // The 'volatile' keyword is used to prevent the compiler from optimizing memory operations
 		volatile float*const shared = OPP::CUDA::getSharedMemory<float>();
 		const auto tid = threadIdx.x;
+    // If the thread ID is less than 32 (the warp size),
+    // perform the reduction within the warp
 		if( tid < 32 )
 		{
-			// TODO
+      // Perform the reduction in a loop, halving the number of active threads in each iteration
+      // The condition checks whether there is only one warp left
       for(int i= (NB_WARPS == 1 ? 16 : 32)  ; i > 0 ; i>>=1){
         shared[tid] += shared[tid + i];
       }
@@ -60,20 +72,23 @@ namespace
 	}
 
 	
-	// 
+  /** This function performs a block-wise reduction on the input data
+    * It uses a different number of iterations compared to the previous version
+    * */
 	template<int NB_WARPS>
 	__device__
 	__forceinline__
 	float reducePerBlock(
 		float const*const source
 	) {
-		// TODO
     float*const shared = OPP::CUDA::getSharedMemory<float>();
     loadSharedMemoryCommutative<NB_WARPS>(source);
+    // Perform the reduction in a loop, halving the number of active threads in each iteration
+    // Stop when the number of active threads is equal to the warp size
     for(int i= 32 * NB_WARPS / 2 ; i > 32; i>>=1){
       reduceJumpingStep(i);
     }
-
+    // Perform the last reduction step within a warp
     reduceLastWarp<NB_WARPS>();
     return shared[0];
 	}
@@ -87,12 +102,11 @@ namespace
 		const float color, 
 		float*const result
 	) {
-    // TODO
     // calcul de l'offset du bloc : la taille est 1024
     const auto offset = blockIdx.x * 1024;
-    // TODO
+    // Get the thread ID within the block
     unsigned tid = threadIdx.x;
-
+    // Each thread fills multiple elements in the result array with the color
     while (tid < 1024) {
       result[tid + offset] = color;
       tid += 32 * NB_WARPS;
@@ -194,3 +208,6 @@ void StudentWorkImpl::run_blockEffect(
 			return;
 	}
 }
+/**********************************/
+/*   AL NATOUR MAZEN, M1 Info CL  */
+/**********************************/

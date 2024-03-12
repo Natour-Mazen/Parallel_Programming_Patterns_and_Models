@@ -20,7 +20,7 @@ namespace
 		const unsigned globalOffset = blockIdx.x * 1024;
 		for (auto tid = threadIdx.x; tid < 1024; tid += 32 * NB_WARPS)
 		{
-			// TODO
+      // Add the value of the pixel to the sum
       sum += data[tid + globalOffset];
 		}
 		const auto localThreadId = threadIdx.x;
@@ -29,6 +29,10 @@ namespace
 	}
 
 	// idem exo2
+  /** This function performs a reduction step by adding elements in shared memory
+   * with a certain 'jump' distance. It is executed by all threads in a block.
+   *It also checks for out-of-bounds accesses.
+   * */
 	template <int NB_WARPS>
 	__device__
 		__forceinline__ void
@@ -37,6 +41,8 @@ namespace
 		// TODO
     float *const shared = OPP::CUDA::getSharedMemory<float>();
     const auto tid = threadIdx.x;
+    // If the thread ID is a multiple of twice the jump value and the index is within bounds,
+    // add the element at position 'tid + jump' to the element at position 'tid'
     if((tid % (jump<<1)) == 0 && tid + jump < 32*NB_WARPS){
       shared[tid] += shared[tid+jump];
     }
@@ -44,15 +50,18 @@ namespace
 	}
 
 	// Idem exo2, sauf le nom de la fonction de chargement ;-)
+  /** This function performs a block-wise reduction on the input data
+    * It uses a different number of iterations compared to the previous version
+    * */
 	template <int NB_WARPS>
 	__device__
 		__forceinline__ float
 		reducePerBlock(
 			float const *const source)
 	{
-		// TODO
     float*const shared = OPP::CUDA::getSharedMemory<float>();
     loadSharedMemoryCommutative<NB_WARPS>(source);
+    // Perform the reduction in a loop, halving the number of active threads in each iteration
     for(int i=1; i<32*NB_WARPS; i<<=1){
       reduceJumpingStep<NB_WARPS>(i);
     }
@@ -67,12 +76,11 @@ namespace
 			const float color,
 			float *const result)
 	{
-		// TODO
     // calcul de l'offset du bloc : la taille est 1024
     const auto offset = blockIdx.x * 1024;
-    // TODO
+    // Get the thread ID within the block
     unsigned tid = threadIdx.x;
-
+    // Each thread fills multiple elements in the result array with the color
     while (tid < 1024) {
       result[tid + offset] = color;
       tid += 32 * NB_WARPS;
@@ -189,3 +197,6 @@ void StudentWorkImpl::run_blockEffect(
 		return;
 	}
 }
+/**********************************/
+/*   AL NATOUR MAZEN, M1 Info CL  */
+/**********************************/

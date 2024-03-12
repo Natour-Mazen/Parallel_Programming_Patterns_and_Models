@@ -12,13 +12,11 @@ namespace
 	__forceinline__
 	void loadSharedMemoryCommutative(float const*const data) 
 	{
-		// TODO
     float *const shared = OPP::CUDA::getSharedMemory<float>();
     float sum = 0.f;
     const unsigned globalOffset = blockIdx.x * 1024;
     for (auto tid = threadIdx.x; tid < 1024; tid += 32 * NB_WARPS)
     {
-      // TODO
       sum += data[tid + globalOffset];
     }
     const auto localThreadId = threadIdx.x;
@@ -27,13 +25,18 @@ namespace
 	}
 
 	// nouvelle version :-)
+  /** This function performs a reduction step by adding elements in shared memory
+   * with a certain 'jump' distance. It is executed by all threads in a block.
+   * It also checks for out-of-bounds accesses.
+    * */
 	__device__ 
 	__forceinline__
 	void reduceJumpingStep(const int jump)
 	{
-		// TODO
     float *const shared = OPP::CUDA::getSharedMemory<float>();
     const auto tid = threadIdx.x;
+    // If the thread ID is less than the jump value,
+    // add the element at position 'tid + jump' to the element at position 'tid'
     if(tid < jump){
       shared[tid] += shared[tid+jump];
     }
@@ -41,15 +44,19 @@ namespace
 	}
 
 	// similaire précédente, mais boucle différente (les threads qui travaillent sont en tête ...)
+  /** This function performs a block-wise reduction on the input data
+    * It uses a different number of iterations compared to the previous version
+    * */
 	template<int NB_WARPS>
 	__device__
 	__forceinline__
 	float reducePerBlock(
 		float const*const source
 	) {
-		// TODO
+
     float*const shared = OPP::CUDA::getSharedMemory<float>();
     loadSharedMemoryCommutative<NB_WARPS>(source);
+    // Perform the reduction in a loop, halving the number of active threads in each iteration
     for(int i= 32 * NB_WARPS / 2 ; i > 0; i>>=1){
       reduceJumpingStep(i);
     }
@@ -65,13 +72,11 @@ namespace
 		const float color, 
 		float*const result
 	) {
-		// TODO
-    // TODO
     // calcul de l'offset du bloc : la taille est 1024
     const auto offset = blockIdx.x * 1024;
-    // TODO
+    // Get the thread ID within the block
     unsigned tid = threadIdx.x;
-
+    // Each thread fills multiple elements in the result array with the color
     while (tid < 1024) {
       result[tid + offset] = color;
       tid += 32 * NB_WARPS;
@@ -174,3 +179,6 @@ void StudentWorkImpl::run_blockEffect(
 	}
 
 }
+/**********************************/
+/*   AL NATOUR MAZEN, M1 Info CL  */
+/**********************************/
