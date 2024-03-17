@@ -109,6 +109,16 @@ void StudentWorkImpl::run_RGB2HSV(
 	const unsigned height
 ) {
 	// TODO: map
+  const unsigned size = width * height;
+  const unsigned threads = 1024;
+  const unsigned gridSize = (size + threads - 1) / threads;
+
+  RGB2HSV_kernel<<<gridSize, threads>>>(dev_source.getDevicePointer(),
+                                          dev_Hue.getDevicePointer(),
+                                          dev_Saturation.getDevicePointer(),
+                                          dev_Value.getDevicePointer(),
+                                          size);
+  cudaDeviceSynchronize();
 }
 
 void StudentWorkImpl::run_HSV2RGB(
@@ -119,5 +129,15 @@ void StudentWorkImpl::run_HSV2RGB(
 	const unsigned width,
 	const unsigned height
 ) {
-	// TODO: map 
+	// TODO: map
+  const unsigned size = width * height;
+  const unsigned threads (1024);
+  const unsigned gridSize = (size + threads - 1) / threads;
+
+  HSV2RGB_kernel<<<gridSize, threads>>>(dev_Hue.getDevicePointer(),
+                                        dev_Saturation.getDevicePointer(),
+                                        dev_Value.getDevicePointer(),
+                                        dev_result.getDevicePointer(),
+                                        size);
+  cudaDeviceSynchronize();
 }

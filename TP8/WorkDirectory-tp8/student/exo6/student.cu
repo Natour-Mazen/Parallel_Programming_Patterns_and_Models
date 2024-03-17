@@ -9,6 +9,62 @@
 #include <type_traits>
 
 namespace {
+  using uchar = unsigned char;
+
+  __global__
+      void buildHistogramAndVarianceSum_kernel(
+          const float* const dev_inputValue,
+          unsigned* const dev_histo,
+          float* const dev_weight,
+          const unsigned size,
+          const unsigned imageWidth) {
+    const unsigned tid = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (tid < size) {
+      const uchar xi = uchar(dev_inputValue[tid] * 256.f);
+      atomicAdd(&dev_histo[xi], 1u);
+
+      const unsigned row = tid / imageWidth;
+      const unsigned col = tid % imageWidth;
+      const unsigned left_idx = row * imageWidth + ((col + imageWidth - 1) % imageWidth);
+      const unsigned right_idx = row * imageWidth + ((col + 1) % imageWidth);
+
+      const float left_value = dev_inputValue[left_idx];
+      const float right_value = dev_inputValue[right_idx];
+      const float local_variance = (left_value - dev_inputValue[tid]) * (left_value - dev_inputValue[tid]) +
+                                   (right_value - dev_inputValue[tid]) * (right_value - dev_inputValue[tid]);
+      atomicAdd(&dev_weight[xi], local_variance / 2.0f);
+    }
+  }
+
+  __global__
+      void buildCumulativeDistributionFunction_kernel(
+          unsigned* const dev_cdf,
+          float* const dev_weight,
+          const float lambda,
+          const unsigned size) {
+    const unsigned tid = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (tid < size) {
+      const float weighted_count = float(dev_cdf[tid]) * (1.0f - lambda) + lambda * dev_weight[tid];
+      dev_cdf[tid] = static_cast<unsigned>(weighted_count);
+    }
+  }
+
+  __global__
+      void applyTransformation_kernel(
+          const float* const dev_inputValue,
+          const unsigned* const dev_cdf,
+          float* const dev_outputValue,
+          const unsigned size) {
+    const unsigned tid = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (tid < size) {
+      const uchar xi = uchar(dev_inputValue[tid] * 256.f);
+      const float cdf_sum = float(dev_cdf[255]);
+      dev_outputValue[tid] = float(dev_cdf[xi]) / cdf_sum;
+    }
+  }
 
   /**
    * @brief print a device buffer on standard output
@@ -38,6 +94,18 @@ namespace {
                                     const unsigned imageWidth)
   {
     // TODO
+    const unsigned nbThreads = 1024;
+    const unsigned size = dev_inputValue.getNbElements();
+
+    const dim3 threads(nbThreads);
+    const dim3 blocks((size + nbThreads - 1) / nbThreads);
+
+    buildHistogramAndVarianceSum_kernel<<<blocks, threads>>>(
+        dev_inputValue.getDevicePointer(),
+        dev_cdf.getDevicePointer(),
+        dev_weight.getDevicePointer(),
+        size,
+        imageWidth);
   }
 
   void buildCumulativeDistributionFunction(OPP::CUDA::DeviceBuffer<unsigned> &dev_cdf,
@@ -46,6 +114,16 @@ namespace {
                                            const unsigned size)
   {
     // TODO
+    const unsigned nbThreads = 1024;
+
+    const dim3 threads(nbThreads);
+    const dim3 blocks((size + nbThreads - 1) / nbThreads);
+
+    buildCumulativeDistributionFunction_kernel<<<blocks, threads>>>(
+        dev_cdf.getDevicePointer(),
+        dev_weight.getDevicePointer(),
+        lambda,
+        size);
   }
 
   void applyTransformation(OPP::CUDA::DeviceBuffer<float> &dev_inputValue,
@@ -53,6 +131,18 @@ namespace {
                            OPP::CUDA::DeviceBuffer<float> &dev_outputValue)
   {
     // TODO
+    const unsigned nbThreads = 1024;
+    const unsigned size = dev_inputValue.getNbElements();
+
+    const dim3 threads(nbThreads);
+    const dim3 blocks((size + nbThreads - 1) / nbThreads);
+
+    applyTransformation_kernel<<<blocks, threads>>>(
+        dev_inputValue.getDevicePointer(),
+        dev_cdf.getDevicePointer(),
+        dev_outputValue.getDevicePointer(),
+        size);
+
   }
 } // namespace
 
@@ -67,8 +157,8 @@ void StudentWorkImpl::run_WHE([[maybe_unused]] OPP::CUDA::DeviceBuffer<float> &d
   // 1. calcul par valeur dans [0..255/256] de l'histogramme ET de la somme des variances/valeur
   ::buildHistogramAndVarianceSum(dev_inputValue, dev_histo, dev_weight, imageWidth);
 
-  // ::print(std::string("histo"), dev_histo); // for debug, if needed
-  // ::print(std::string("weight"), dev_weight); // for debug, if needed
+   ::print(std::string("histo"), dev_histo); // for debug, if needed
+   ::print(std::string("weight"), dev_weight); // for debug, if needed
 
   // 2. calcul de la CDF (dans histo pour économiser de la mémoire)
   ::buildCumulativeDistributionFunction(dev_histo, dev_weight, lambda, imageWidth * imageHeight);
