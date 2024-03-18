@@ -18,10 +18,11 @@ namespace {
           float* const dev_weight,
           const unsigned size,
           const unsigned imageWidth) {
+
     const unsigned tid = blockIdx.x * blockDim.x + threadIdx.x;
 
     if (tid < size) {
-      const uchar xi = uchar(dev_inputValue[tid] * 256.f);
+      const uchar xi = uchar(dev_inputValue[tid]);
       atomicAdd(&dev_histo[xi], 1u);
 
       const unsigned row = tid / imageWidth;
@@ -40,13 +41,13 @@ namespace {
   __global__
       void buildCumulativeDistributionFunction_kernel(
           unsigned* const dev_cdf,
-          float* const dev_weight,
+          const float* const dev_weight,
           const float lambda,
           const unsigned size) {
     const unsigned tid = blockIdx.x * blockDim.x + threadIdx.x;
 
     if (tid < size) {
-      const float weighted_count = float(dev_cdf[tid]) * (1.0f - lambda) + lambda * dev_weight[tid];
+      const float weighted_count = ( float(dev_cdf[tid]) * (1.0f - lambda) + (lambda * dev_weight[tid]) );
       dev_cdf[tid] = static_cast<unsigned>(weighted_count);
     }
   }
@@ -60,7 +61,7 @@ namespace {
     const unsigned tid = blockIdx.x * blockDim.x + threadIdx.x;
 
     if (tid < size) {
-      const uchar xi = uchar(dev_inputValue[tid] * 256.f);
+      const uchar xi = uchar(dev_inputValue[tid]);
       const float cdf_sum = float(dev_cdf[255]);
       dev_outputValue[tid] = float(dev_cdf[xi]) / cdf_sum;
     }
@@ -157,8 +158,8 @@ void StudentWorkImpl::run_WHE([[maybe_unused]] OPP::CUDA::DeviceBuffer<float> &d
   // 1. calcul par valeur dans [0..255/256] de l'histogramme ET de la somme des variances/valeur
   ::buildHistogramAndVarianceSum(dev_inputValue, dev_histo, dev_weight, imageWidth);
 
-   ::print(std::string("histo"), dev_histo); // for debug, if needed
-   ::print(std::string("weight"), dev_weight); // for debug, if needed
+  // ::print(std::string("histo"), dev_histo); // for debug, if needed
+  // ::print(std::string("weight"), dev_weight); // for debug, if needed
 
   // 2. calcul de la CDF (dans histo pour économiser de la mémoire)
   ::buildCumulativeDistributionFunction(dev_histo, dev_weight, lambda, imageWidth * imageHeight);

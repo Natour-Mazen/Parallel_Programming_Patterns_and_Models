@@ -7,25 +7,27 @@ namespace
   using uchar = unsigned char;
   __global__
       void ahe_transformation_kernel(
-          const float* const value,
-          const unsigned* const repartition,
-          float* const transformation,
-          const unsigned size,
+          const float* const pixelValues,
+          const unsigned* const histogramRepartition,
+          float* const transformedValues,
+          const unsigned totalPixels,
           const float lambda
-      )
-  {
-    const unsigned tid = blockIdx.x * blockDim.x + threadIdx.x;
+      ) {
+    const unsigned threadId = blockIdx.x * blockDim.x + threadIdx.x;
 
-    if (tid < size)
-    {
-      const float v = value[tid];
-      const float u = static_cast<float>(tid) / static_cast<float>(size);
-      const float h = static_cast<float>(repartition[tid]) / static_cast<float>(size);
+    if (threadId < totalPixels) {
+      const uchar pixelIntensity = uchar(pixelValues[threadId]); // Convert the value at index tid to an unsigned char
 
-      transformation[tid] = (1.0f - lambda) * v + lambda * ((v - h) / (1.0f - h) + u);
+      // Calculate the different parts of the equation
+      const float lambdaComplement = 1 / (1 + lambda);
+      const float histogramValue = static_cast<float>(histogramRepartition[pixelIntensity]);
+      const float lambdaRatio = lambda / (1 + lambda);
+      const float sizeRatio = static_cast<float>(totalPixels) * static_cast<float>(pixelIntensity) / 256;
+
+      // Apply the transformation
+      transformedValues[threadId] = (255.f * (  (lambdaComplement * histogramValue) + (lambdaRatio * sizeRatio) ) )  / static_cast<float>(totalPixels);
     }
   }
-
 }
 
 void StudentWorkImpl::run_Transformation(
@@ -34,16 +36,10 @@ void StudentWorkImpl::run_Transformation(
 	OPP::CUDA::DeviceBuffer<unsigned>& dev_repartition,
 	OPP::CUDA::DeviceBuffer<float>& dev_transformation // or "transformed"
 ) {
-	// TODO: a map
+	// SI ON MET LAMBDA SUR 0 ALORS ON REVIENT SUR L EXO D AVANT
 	// NB: equation (6) is applied on the fly to the transformed value...
   const unsigned nbThreads = 1024;
   const unsigned size = dev_Value.getNbElements();
-
-  // Mappage des valeurs des pixels en float
-  OPP::CUDA::DeviceBuffer<float> dev_ValueMapped(size);
- // OPP::CUDA::inclusiveScan<float,>(dev_Value, dev_ValueMapped, [](uchar v) { return static_cast<float>(v) / 255.0f; });
-
-  OPP::CUDA::DeviceBuffer<float> dev_TransformationMapped(size);
 
   const dim3 threads(nbThreads);
   const dim3 blocks((size + nbThreads - 1) / nbThreads);
@@ -51,7 +47,7 @@ void StudentWorkImpl::run_Transformation(
   ahe_transformation_kernel<<<blocks, threads>>>(
       dev_Value.getDevicePointer(),
       dev_repartition.getDevicePointer(),
-      dev_TransformationMapped.getDevicePointer(),
+      dev_transformation.getDevicePointer(),
       size,
       lambda
   );
