@@ -14,17 +14,9 @@ namespace
           const unsigned size
       ){
     const unsigned tid = blockIdx.x * blockDim.x + threadIdx.x;
-  /* if (tid < size) {
-      const uchar xi = uchar(value[tid] * 256.f);
-      const float prob_xi = float(repartition[xi]) / float(size);
-      const float prob_uniform = 1.0f / 256.0f;
-      const float T_xi = (prob_xi / prob_uniform) * (255.0f / (prob_xi / prob_uniform + 1.0f));
-      transformation[tid] = T_xi;
-    }*/
-
     if (tid < size) {
-      const uchar xi = uchar(value[tid] * 256.f);
-      transformation[tid] = (255.f * float(repartition[xi])) / (256.f * size);
+      const uchar xi = uchar(value[tid]);
+      transformation[tid] = (255.f *  static_cast<float>(repartition[xi])) / static_cast<float>(size);
     }
   }
 }

@@ -7,8 +7,8 @@ namespace
   struct foncteur {
     __device__
         unsigned operator()(const float& v) const {
-      return 256 * v;
-    }
+            return static_cast<unsigned>(v);
+        }
   };
 }
 
