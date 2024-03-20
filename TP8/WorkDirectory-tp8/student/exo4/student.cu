@@ -26,15 +26,12 @@ void StudentWorkImpl::run_Transformation(
 	OPP::CUDA::DeviceBuffer<unsigned>& dev_repartition,
 	OPP::CUDA::DeviceBuffer<float>& dev_transformation // or "transformed"
 ) {
-	// TODO
   const unsigned nbThreads = 1024;
 
   const unsigned size = dev_Value.getNbElements();
 
   const dim3 threads(nbThreads);
   const dim3 blocks((size + nbThreads - 1) / nbThreads);
-
-
 
   transformation_kernel<<<blocks,threads>>>(
       dev_Value.getDevicePointer(),
