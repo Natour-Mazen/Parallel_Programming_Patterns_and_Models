@@ -46,110 +46,135 @@ namespace {
 
   using uchar = unsigned char;
 
+  // CUDA kernel function to build a histogram of pixel intensities and calculate the sum of variances for an image
   __global__
       void buildHistogramAndVarianceSum_kernel(
-          const float* const dev_inputValue,
-          unsigned* const dev_histo,
-          float* const dev_weight,
-          const unsigned size,
-          const unsigned imageWidth) {
+          const float* const dev_inputValue, // Pointer to the input image data
+          unsigned* const dev_histo, // Pointer to the output histogram data
+          float* const dev_weight, // Pointer to the output weight data (used for variance calculation)
+          const unsigned size, // The total number of pixels in the image
+          const unsigned imageWidth) { // The width of the image in pixels
 
-    __shared__ float shared_sum;
-    __shared__ unsigned shared_count;
-    __shared__ unsigned shared_histo[257];
+    // Shared memory variables
+    __shared__ float shared_sum; // Sum of pixel intensities
+    __shared__ unsigned shared_count; // Count of processed pixels
+    __shared__ unsigned shared_histo[256]; // Histogram of pixel intensities
+    __shared__ float shared_sum_squared_diff; // Sum of squared differences from the mean
 
+    // Initialize shared memory variables
     shared_sum = 0.0f;
     shared_count = 0;
-
-    for (int i = 0; i < 257; i++) {
-      shared_histo[i] = 0;
+    shared_sum_squared_diff = 0.0f;
+    for (unsigned int & i : shared_histo) {
+      i = 0;
     }
 
+    // Calculate thread ID and stride
     const unsigned tid = blockIdx.x * blockDim.x + threadIdx.x;
     const unsigned stride = blockDim.x * gridDim.x;
 
+    // Each thread processes multiple pixels
     for (unsigned i = tid; i < size; i += stride) {
       float pixel = dev_inputValue[i];
       shared_sum += pixel;
       shared_count++;
 
-      const unsigned xi = min(static_cast<unsigned>(pixel), 256u);
-      atomicAdd(&shared_histo[xi], 1u);
+      const unsigned xi = min(static_cast<unsigned>(pixel), 255u);
+      atomicAdd(&shared_histo[xi], 1u); // Increment histogram bin
 
+      // Calculate indices of left and right neighbors
       const unsigned row = i / imageWidth;
       const unsigned col = i % imageWidth;
       const unsigned left_idx = row * imageWidth + ((col + imageWidth - 1) % imageWidth);
-      const unsigned right_idx = row * imageWidth + ((col + 1) % imageWidth);
+      const unsigned right_idx = row * imageWidth + ((col + 1 ) % imageWidth);
 
+      // Calculate local variance
       const float left_value = dev_inputValue[left_idx];
       const float right_value = dev_inputValue[right_idx];
       const float local_variance = (left_value - pixel) * (left_value - pixel) +
                                    (right_value - pixel) * (right_value - pixel);
-      atomicAdd(&dev_weight[xi], local_variance / 2.0f);
+      atomicAdd(&dev_weight[xi], local_variance / static_cast<float>(size));
     }
 
-    __syncthreads();
+    __syncthreads(); // Synchronize threads
 
+    // First thread in each block calculates the sum and count
     if (threadIdx.x == 0) {
       dev_weight[256] = shared_sum;
       dev_weight[257] = shared_count;
     }
 
-    __syncthreads();
+    __syncthreads(); // Synchronize threads
 
+    // Calculate the mean and variance
     if (dev_weight[257] > 0) {
       float mean = dev_weight[256] / dev_weight[257];
-      float sum_squared_diff = 0.0f;
 
       for (unsigned i = tid; i < size; i += stride) {
         float diff = dev_inputValue[i] - mean;
-        sum_squared_diff += diff * diff;
+        shared_sum_squared_diff += diff * diff;
       }
 
-      atomicAdd(&dev_weight[258], sum_squared_diff * 256);
+      __syncthreads(); // Synchronize threads
+
+      if (threadIdx.x == 0) {
+        dev_weight[258] = shared_sum_squared_diff;
+      }
     }
 
-    __syncthreads();
+    __syncthreads(); // Synchronize threads
 
-    for (unsigned i = threadIdx.x; i < 257; i += blockDim.x) {
+    // Copy the shared histogram to global memory
+    for (unsigned i = threadIdx.x; i < 256; i += blockDim.x) {
       dev_histo[i] = shared_histo[i];
     }
   }
 
+  // CUDA kernel function to build a cumulative distribution function (CDF) for pixel intensities
   __global__
       void buildCumulativeDistributionFunction_kernel(
-          unsigned* const dev_cdf,
-          const float* const dev_weight,
-          const float lambda,
-          const unsigned size) {
+          unsigned* const dev_cdf, // Pointer to the output CDF data
+          const float* const dev_weight, // Pointer to the input weight data (used for CDF calculation)
+          const float lambda, // Regularization term to prevent division by zero
+          const unsigned size) { // The total number of pixels in the image
 
+    // Calculate thread ID
     const unsigned tid = blockIdx.x * blockDim.x + threadIdx.x;
 
+    // Each thread processes one intensity value
     if (tid < 256) {
       float sum_weights = 0.0f;
+      // Calculate the sum of weights for all intensities up to tid
       for (unsigned i = 0; i <= tid; ++i) {
         sum_weights += dev_weight[i];
       }
+      // Normalize the sum of weights and store it in the CDF
       float normalized_weight = (sum_weights + lambda) / (size + 256.0f * lambda);
       dev_cdf[tid] = static_cast<unsigned>(normalized_weight * size);
     }
   }
 
+  // CUDA kernel function to apply a transformation to the pixel intensities based on the CDF
   __global__
       void applyTransformation_kernel(
-          const float* const dev_inputValue,
-          const unsigned* const dev_cdf,
-          float* const dev_outputValue,
-          const unsigned size) {
+          const float* const dev_inputValue, // Pointer to the input image data
+          const unsigned* const dev_cdf, // Pointer to the input CDF data
+          float* const dev_outputValue, // Pointer to the output image data
+          const unsigned size) { // The total number of pixels in the image
+
+    // Calculate thread ID
     const unsigned tid = blockIdx.x * blockDim.x + threadIdx.x;
 
+    // Each thread processes one pixel
     if (tid < size) {
+      // Retrieve the intensity of the pixel and cast it to an unsigned char
       const uchar xi = uchar(dev_inputValue[tid]);
+      // Retrieve the CDF value for this intensity
       const float cdf_sum = float(dev_cdf[255]);
-      dev_outputValue[tid] = 255.f * float(dev_cdf[xi]) / cdf_sum;
+      // Apply the transformation and store the result in the output image
+      dev_outputValue[tid] = 255.0f * dev_cdf[xi] / cdf_sum;
     }
   }
-
 
   void buildHistogramAndVarianceSum(OPP::CUDA::DeviceBuffer<float> &dev_inputValue,
                                     OPP::CUDA::DeviceBuffer<unsigned> &dev_cdf,
