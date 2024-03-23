@@ -2,7 +2,7 @@
 #include <cstring>
 #include <algorithm>
 #include <3-2-broadcast/Broadcast.h>
-#include <MPI/OPP_MPI.h>
+#include <OPP/MPI/OPP_MPI.h>
 
 // Version pipeline ...
 void Broadcast(

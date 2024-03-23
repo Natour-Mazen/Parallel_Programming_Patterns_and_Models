@@ -1,10 +1,11 @@
-#include <MPI/OPP_MPI.h>
+#include <OPP/MPI/OPP_MPI.h>
 
 namespace
 {
   int receiveOrInitIfFirstProc(const OPP::MPI::Ring &ring)
   {
     // TODO
+    return -1; // change it!
   }
 
   void sendToNextProcIfNotLast(const OPP::MPI::Ring &ring, int number)
@@ -30,7 +31,7 @@ namespace
 
 int main(int argc, char **argv)
 {
-  // something is missing here??
+  // is something missing here??
 
   const int err_code = test(MPI_COMM_WORLD);
 
