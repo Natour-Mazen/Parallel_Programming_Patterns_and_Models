@@ -74,14 +74,18 @@ namespace
 		float *const Value,
 		const unsigned size
 	) {
-		const unsigned tid = threadIdx.x + blockIdx.x * blockDim.x;
-		if( tid < size )
-		{
-			float3 hsv( RGB2HSV(source[tid]) );
-			Hue[tid] = hsv.x;
-			Saturation[tid] = hsv.y;
-			Value[tid] = hsv.z;
-		}
+    // Calculate the thread ID
+    const unsigned tid = threadIdx.x + blockIdx.x * blockDim.x;
+    // Ensure that the thread ID is within the valid range
+    if( tid < size )
+    {
+      // Convert the RGB pixel to HSV format
+      float3 hsv( RGB2HSV(source[tid]) );
+      // Store the Hue, Saturation, and Value components in the output arrays
+      Hue[tid] = hsv.x;
+      Saturation[tid] = hsv.y;
+      Value[tid] = hsv.z;
+    }
 	}
 	
 	__global__
@@ -92,11 +96,14 @@ namespace
 		uchar3 *const result, 
 		const unsigned size
 	) {
-		const unsigned tid = threadIdx.x + blockIdx.x * blockDim.x;
-		if( tid < size )
-		{
-			result[tid] = HSV2RGB(Hue[tid], Saturation[tid], Value[tid]);
-		}
+    // Calculate the thread ID
+    const unsigned tid = threadIdx.x + blockIdx.x * blockDim.x;
+    // Ensure that the thread ID is within the valid range
+    if( tid < size )
+    {
+      // Convert the HSV pixel to RGB format and store the result in the output array
+      result[tid] = HSV2RGB(Hue[tid], Saturation[tid], Value[tid]);
+    }
 	}
 }
 
@@ -108,7 +115,6 @@ void StudentWorkImpl::run_RGB2HSV(
 	const unsigned width,
 	const unsigned height
 ) {
-	// TODO: map
   const unsigned size = width * height;
   const unsigned threads = 1024;
   const unsigned gridSize = (size + threads - 1) / threads;
@@ -129,7 +135,6 @@ void StudentWorkImpl::run_HSV2RGB(
 	const unsigned width,
 	const unsigned height
 ) {
-	// TODO: map
   const unsigned size = width * height;
   const unsigned threads (1024);
   const unsigned gridSize = (size + threads - 1) / threads;
@@ -141,3 +146,6 @@ void StudentWorkImpl::run_HSV2RGB(
                                         size);
   cudaDeviceSynchronize();
 }
+/**********************************/
+/*   AL NATOUR MAZEN, M1 Info CL  */
+/**********************************/

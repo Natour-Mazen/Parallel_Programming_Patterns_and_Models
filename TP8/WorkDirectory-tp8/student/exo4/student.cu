@@ -6,6 +6,7 @@ namespace
 {
   using uchar = unsigned char;
 
+  // CUDA kernel for performing a transformation based on the provided values and repartition
   __global__
       void transformation_kernel(
           const float* const value,
@@ -13,9 +14,10 @@ namespace
           float* const transformation,
           const unsigned size
       ){
-    const unsigned tid = blockIdx.x * blockDim.x + threadIdx.x;
+    const unsigned tid = blockIdx.x * blockDim.x + threadIdx.x; // Calculate thread ID
     if (tid < size) {
-      const uchar xi = uchar(value[tid]);
+      const uchar xi = uchar(value[tid]); // Convert value to unsigned char
+      // Perform transformation based on repartition and store result in transformation array
       transformation[tid] = (255.f *  static_cast<float>(repartition[xi])) / static_cast<float>(size);
     }
   }
@@ -40,3 +42,6 @@ void StudentWorkImpl::run_Transformation(
       size
   );
 }
+/**********************************/
+/*   AL NATOUR MAZEN, M1 Info CL  */
+/**********************************/
