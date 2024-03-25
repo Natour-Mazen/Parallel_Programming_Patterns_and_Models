@@ -4,13 +4,30 @@ namespace
 {
   int receiveOrInitIfFirstProc(const OPP::MPI::Ring &ring)
   {
-    // TODO
-    return -1; // change it!
+      // First Proc
+      if(ring.getRank() == 0){
+          std::cout << "Processor " << ring.getRank() << " init data" << std::endl;
+          return 0b101010;
+      }
+      // no, so receive from previous one
+      int number = -1;
+      ring.Recv(&number, 1, MPI_INT);
+
+      std::cout << "Processor " << ring.getRank() << " receive" << std::endl;
+
+      return number;
   }
 
   void sendToNextProcIfNotLast(const OPP::MPI::Ring &ring, int number)
   {
-    // TODO
+      // if last processor, just do nothing
+      if (ring.getNext() == 0)
+          return;
+      // not last, so send to next processor
+      ring.Send(&number, 1, MPI_INT);
+
+      std::cout << "Processor " << ring.getRank() << " send " << number
+                << " to the next" << std::endl;
   }
 
   int test(const OPP::MPI::Communicator &comm)
@@ -31,10 +48,12 @@ namespace
 
 int main(int argc, char **argv)
 {
-  // is something missing here??
+    // is something missing here??
+    MPI_Init(&argc,&argv);
 
-  const int err_code = test(MPI_COMM_WORLD);
+    const int err_code = test(MPI_COMM_WORLD);
 
-  // and here?
-  return err_code;
+    MPI_Finalize();
+
+    return err_code;
 }

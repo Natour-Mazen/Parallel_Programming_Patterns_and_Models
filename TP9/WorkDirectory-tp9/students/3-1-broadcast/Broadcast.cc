@@ -9,4 +9,14 @@ void Broadcast(
     const int N // nombre d'entiers à envoyer/recevoir
 ) {  
     // TODO
+    OPP::MPI::Ring ring(MPI_COMM_WORLD);
+
+    if (ring.getRank() == k) {
+        ring.Send(addr, N, MPI_INT);
+    } else if (ring.getNext() == k) {
+        ring.Recv(addr, N, MPI_INT);
+    } else {
+        ring.Recv(addr, N, MPI_INT);
+        ring.Send(addr, N, MPI_INT);
+    }
 }
