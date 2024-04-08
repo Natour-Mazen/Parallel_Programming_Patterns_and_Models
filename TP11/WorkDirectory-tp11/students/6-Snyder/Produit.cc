@@ -1,9 +1,9 @@
 #include <6-Snyder/Produit.h>
+#include <OPP/MPI/OPP_MPI.h>
 
 #include <DistributedBlockMatrix.h>
 #include <memory>
 #include <thread>
-
 
 namespace {
 } // namespace

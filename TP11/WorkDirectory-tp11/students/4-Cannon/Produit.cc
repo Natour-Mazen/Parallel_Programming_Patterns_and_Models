@@ -1,8 +1,8 @@
 #include <4-Cannon/Produit.h>
+#include <OPP/MPI/OPP_MPI.h>
 
 #include <DistributedBlockMatrix.h>
 #include <memory>
-
 
 namespace {
 } // namespace
