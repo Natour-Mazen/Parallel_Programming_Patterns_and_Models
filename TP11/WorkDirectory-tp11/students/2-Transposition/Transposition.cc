@@ -48,8 +48,8 @@ namespace {
       torus.Recv(&transpose[0], bSize, MPI_FLOAT, Direction::SOUTH);
 
       for (int i = 0; i < col; ++i) {
-        torus.Recv(&buffer[0], bSize, MPI_FLOAT, Direction::NORTH);
-        torus.Send(&buffer[0], bSize, MPI_FLOAT, Direction::SOUTH);
+        torus.Recv(&buffer[0], bSize, MPI_FLOAT, Direction::SOUTH);
+        torus.Send(&buffer[0], bSize, MPI_FLOAT, Direction::NORTH);
       }
     }
     else // sur la diagonale
