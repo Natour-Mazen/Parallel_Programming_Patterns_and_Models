@@ -88,7 +88,8 @@ namespace {
         bufferB[(j - B[i].Start()) + r * (i - B.Start())] = B[i][j];
 
     for (int i = C.Start(); i < C.End(); ++i)
-      for (int j = C[i].Start(); j < C[i].End(); ++j) C[i][j] = 0.0f;
+      for (int j = C[i].Start(); j < C[i].End(); ++j)
+        C[i][j] = 0.0f;
   }
 
 } // namespace

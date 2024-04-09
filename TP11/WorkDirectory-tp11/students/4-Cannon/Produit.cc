@@ -5,6 +5,51 @@
 #include <memory>
 
 namespace {
+
+  void RotationHorizontale(const OPP::MPI::Torus &torus, float *buffer,
+                           const int L) {
+    torus.Send(buffer, L, MPI_FLOAT, OPP::MPI::Torus::Direction::WEST);
+    torus.Recv(buffer, L, MPI_FLOAT, OPP::MPI::Torus::Direction::EAST);
+  }
+
+  void RotationVerticale(const OPP::MPI::Torus &torus, float *buffer,
+                         const int L) {
+    torus.Send(buffer, L, MPI_FLOAT, OPP::MPI::Torus::Direction::NORTH);
+    torus.Recv(buffer, L, MPI_FLOAT, OPP::MPI::Torus::Direction::SOUTH);
+  }
+
+  // Produit de deux matrices carrées A et B.
+  // @param A opérande de gauche
+  // @param B opérande de droite
+  // @param C matrice résultat (out)
+  // @param n largeur/hauteur des matrices
+  void ProduitSequentiel(const float *A, const float *B, DistributedBlockMatrix &C, int r) {
+    for (int row = C.Start(); row < C.End(); ++row) {
+      for (int col = C[row].Start(); col < C[row].End(); ++col) {
+        float dot = 0.0;
+        for (int k = 0; k < r; ++k)
+          dot += A[k + (row - C.Start()) * r] * B[(col - C[row].Start()) + k * r];
+        C[row][col] += dot;
+      }
+    }
+  }
+
+  void init(const DistributedBlockMatrix &A, const DistributedBlockMatrix &B,
+            DistributedBlockMatrix &C, float *bufferA, float *bufferB,
+            const int r) {
+    for (int i = A.Start(); i < A.End(); ++i)
+      for (int j = A[i].Start(); j < A[i].End(); ++j)
+        bufferA[(j - A[i].Start()) + r * (i - A.Start())] = A[i][j];
+
+    for (int i = B.Start(); i < B.End(); ++i)
+      for (int j = B[i].Start(); j < B[i].End(); ++j)
+        bufferB[(j - B[i].Start()) + r * (i - B.Start())] = B[i][j];
+
+    for (int i = C.Start(); i < C.End(); ++i)
+      for (int j = C[i].Start(); j < C[i].End(); ++j)
+        C[i][j] = 0.0f;
+  }
+
 } // namespace
 
 void Produit(const OPP::MPI::Torus &torus,
@@ -13,4 +58,25 @@ void Produit(const OPP::MPI::Torus &torus,
              DistributedBlockMatrix &C)
 {
   // TODO
+  const int n = sqrt(torus.getCommunicator().size);
+  const int r = C.End() - C.Start();
+  const int L = r * r;
+
+  float *bufferA = new float[L];
+  float *bufferB = new float[L];
+
+  init(A, B, C, bufferA, bufferB, r);
+
+  RotationHorizontale(torus, bufferA, L);
+  RotationVerticale(torus, bufferB, L);
+
+  for (int k = 0; k < n; ++k) {
+    ProduitSequentiel(bufferA, bufferB, C, r);
+
+    RotationHorizontale(torus, bufferA, L);
+    RotationVerticale(torus, bufferB, L);
+  }
+
+  delete[] bufferA;
+  delete[] bufferB;
 }
