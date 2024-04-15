@@ -7,103 +7,107 @@
 #include <vector>
 
 namespace {
-  // chargement et translation du bloc
+  // Load and translate the block
   void loadAndTranslate(std::vector<float> &block,
                         const DistributedBlockMatrix &M,
                         const unsigned width)
   {
-    // TODO
+    // Load each element of the block from the DistributedBlockMatrix M
     for (int i = M.Start(); i < M.End(); ++i)
     {
       for (int j = M[i].Start(); j < M[i].End(); ++j)
       {
+        // Translate the loaded elements to fit into a linear vector 'block'
         block[(i - M.Start()) + width * (j - M[i].Start())] = M[i][j];
       }
     }
   }
 
-  // sens Lower vers Up (du bas vers le haut)
+  // Transpose from Lower to Upper (from bottom to top)
   void below2above(const OPP::MPI::Torus &torus,
                    const int bSize,
                    const std::vector<float> &block,
                    std::vector<float> &transpose)
   {
     using Direction = OPP::MPI::Torus::Direction;
-    const auto row = torus.getRowRing().getRank();
-    const auto col = torus.getColumnRing().getRank();
-    std::vector<float> buffer(bSize);
-    if (row < col) // sous la diagonale : on envoie de gauche à droite
-    {
-      // TODO
-      torus.Send(&block[0], bSize, MPI_FLOAT, Direction::EAST);
+    const auto row = torus.getRowRing().getRank(); // Get the row index in the Torus grid
+    const auto col = torus.getColumnRing().getRank(); // Get the column index in the Torus grid
+    std::vector<float> buffer(bSize); // Create a buffer to store received data temporarily
 
+    if (row < col) // Below the diagonal: send data from left to right
+    {
+      torus.Send(&block[0], bSize, MPI_FLOAT, Direction::EAST); // Send the block data to the east neighbor
+
+      // Relay the data to the east neighbors until reaching the last row
       for (int i = 0; i < row; ++i) {
-        torus.Recv(&buffer[0], bSize, MPI_FLOAT, Direction::WEST);
-        torus.Send(&buffer[0], bSize, MPI_FLOAT, Direction::EAST);
+        torus.Recv(&buffer[0], bSize, MPI_FLOAT, Direction::WEST); // Receive data from the west neighbor
+        torus.Send(&buffer[0], bSize, MPI_FLOAT, Direction::EAST); // Send data to the east neighbor
       }
     }
-    else if (row > col) // sur la diagonale : on reçoit de bas en haut
+    else if (row > col) // On the diagonal: receive data from bottom to top
     {
-      // TODO
-      torus.Recv(&transpose[0], bSize, MPI_FLOAT, Direction::SOUTH);
+      torus.Recv(&transpose[0], bSize, MPI_FLOAT, Direction::SOUTH); // Receive the transposed data from the south neighbor
 
+      // Relay the data to the north neighbors until reaching the last column
       for (int i = 0; i < col; ++i) {
-        torus.Recv(&buffer[0], bSize, MPI_FLOAT, Direction::SOUTH);
-        torus.Send(&buffer[0], bSize, MPI_FLOAT, Direction::NORTH);
+        torus.Recv(&buffer[0], bSize, MPI_FLOAT, Direction::SOUTH); // Receive data from the south neighbor
+        torus.Send(&buffer[0], bSize, MPI_FLOAT, Direction::NORTH); // Send data to the north neighbor
       }
     }
-    else // sur la diagonale
+    else // On the diagonal
     {
-      // TODO
+      // Relay the data to the north neighbors until reaching the last row
       for (int i = 0; i < row; ++i) {
-        torus.Recv(&buffer[0], bSize, MPI_FLOAT, Direction::WEST);
-        torus.Send(&buffer[0], bSize, MPI_FLOAT, Direction::NORTH);
+        torus.Recv(&buffer[0], bSize, MPI_FLOAT, Direction::WEST); // Receive data from the west neighbor
+        torus.Send(&buffer[0], bSize, MPI_FLOAT, Direction::NORTH); // Send data to the north neighbor
       }
     }
   }
 
-  // sens Up vers Lower (du haut vers le bas)
+  // Transpose from Upper to Lower (from top to bottom)
   void above2below(const OPP::MPI::Torus &torus,
                    const int bSize,
                    const std::vector<float> &block,
                    std::vector<float> &transpose)
   {
-    // TODO
     using Direction = OPP::MPI::Torus::Direction;
 
-    const int row = torus.getRowRing().getRank();
-    const int col = torus.getColumnRing().getRank();
+    const int row = torus.getRowRing().getRank(); // Get the row index in the Torus grid
+    const int col = torus.getColumnRing().getRank(); // Get the column index in the Torus grid
 
-    std::vector<float> buffer(bSize);
+    std::vector<float> buffer(bSize); // Create a buffer to store received data temporarily
 
     if (row < col) {
-      torus.Recv(&transpose[0], bSize, MPI_FLOAT, Direction::EAST);
+      torus.Recv(&transpose[0], bSize, MPI_FLOAT, Direction::EAST); // Receive the transposed data from the east neighbor
 
+      // Relay the data to the west neighbors until reaching the last row
       for (int i = 0; i < row; ++i) {
-        torus.Recv(&buffer[0], bSize, MPI_FLOAT, Direction::EAST);
-        torus.Send(&buffer[0], bSize, MPI_FLOAT, Direction::WEST);
+        torus.Recv(&buffer[0], bSize, MPI_FLOAT, Direction::EAST); // Receive data from the east neighbor
+        torus.Send(&buffer[0], bSize, MPI_FLOAT, Direction::WEST); // Send data to the west neighbor
       }
     } else if (row > col) {
-      torus.Send(&block[0], bSize, MPI_FLOAT, Direction::SOUTH);
+      torus.Send(&block[0], bSize, MPI_FLOAT, Direction::SOUTH); // Send the block data to the south neighbor
 
+      // Relay the data to the south neighbors until reaching the last column
       for (int i = 0; i < col; ++i) {
-        torus.Recv(&buffer[0], bSize, MPI_FLOAT, Direction::NORTH);
-        torus.Send(&buffer[0], bSize, MPI_FLOAT, Direction::SOUTH);
+        torus.Recv(&buffer[0], bSize, MPI_FLOAT, Direction::NORTH); // Receive data from the north neighbor
+        torus.Send(&buffer[0], bSize, MPI_FLOAT, Direction::SOUTH); // Send data to the south neighbor
       }
     } else {
+      // Relay the data to the west neighbors until reaching the last row
       for (int i = 0; i < row; ++i) {
-        torus.Recv(&buffer[0], bSize, MPI_FLOAT, Direction::NORTH);
-        torus.Send(&buffer[0], bSize, MPI_FLOAT, Direction::WEST);
+        torus.Recv(&buffer[0], bSize, MPI_FLOAT, Direction::NORTH); // Receive data from the north neighbor
+        torus.Send(&buffer[0], bSize, MPI_FLOAT, Direction::WEST); // Send data to the west neighbor
       }
     }
   }
 
-  // sauvegarde du résultat
+  // Save the result back to the DistributedBlockMatrix
   void saveBlock(const std::vector<float> &transpose,
                  DistributedBlockMatrix &M,
                  const unsigned width)
   {
-    // TODO
+    // Save the transposed block back to the DistributedBlockMatrix M
     for (int i = M.Start(); i < M.End(); ++i)
       for (int j = M[i].Start(); j < M[i].End(); ++j)
         M[i][j] = transpose[(i - M.Start()) * width + (j - M[i].Start())];
@@ -147,3 +151,6 @@ void Transposition(const OPP::MPI::Torus &torus,
 
   // that's all, folks!
 }
+/**********************************/
+/*   AL NATOUR MAZEN, M1 Info CL  */
+/**********************************/
