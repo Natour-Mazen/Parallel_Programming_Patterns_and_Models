@@ -159,3 +159,6 @@ void Produit(const OPP::MPI::Torus &torus, const DistributedBlockMatrix &A,
   delete[] send_bufferC;
   delete[] recv_bufferC;
 }
+/**********************************/
+/*   AL NATOUR MAZEN, M1 Info CL  */
+/**********************************/
