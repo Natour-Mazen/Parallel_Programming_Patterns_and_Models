@@ -19,3 +19,6 @@ TP10/WorkDirectory-tp10/matrix.bin
 TP10/WorkDirectory-tp10/result.bin
 TP10/WorkDirectory-tp10/vector.bin
 *.bin
+TP11/WorkDirectory-tp11/matrixA.bin
+TP11/WorkDirectory-tp11/matrixB.bin
+TP11/WorkDirectory-tp11/matrixC.bin
