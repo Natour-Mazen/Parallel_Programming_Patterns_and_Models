@@ -18,3 +18,4 @@ cmake-build-release
 TP10/WorkDirectory-tp10/matrix.bin
 TP10/WorkDirectory-tp10/result.bin
 TP10/WorkDirectory-tp10/vector.bin
+*.bin
