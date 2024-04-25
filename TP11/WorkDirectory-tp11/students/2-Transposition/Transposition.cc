@@ -8,7 +8,7 @@
 
 namespace {
   // Load and translate the block
-  void loadAndTranslate(std::vector<float> &block,
+  void loadAndTranspose(std::vector<float> &block,
                         const DistributedBlockMatrix &M,
                         const unsigned width)
   {
@@ -111,6 +111,8 @@ namespace {
     for (int i = M.Start(); i < M.End(); ++i)
       for (int j = M[i].Start(); j < M[i].End(); ++j)
         M[i][j] = transpose[(i - M.Start()) * width + (j - M[i].Start())];
+
+
   }
 } // namespace
 
@@ -134,9 +136,9 @@ void Transposition(const OPP::MPI::Torus &torus,
   std::vector<float> block(bSize);
   std::vector<float> transpose(bSize);
   if (x == y) // attention au cas de la diagonale ... il faut copier le résultat !
-    loadAndTranslate(transpose, A, width);
+    loadAndTranspose(transpose, A, width);
   else
-    loadAndTranslate(block, A, width);
+    loadAndTranspose(block, A, width);
 
   // on traite chaque sens en parallèle :
   {
