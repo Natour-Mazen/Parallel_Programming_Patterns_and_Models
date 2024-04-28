@@ -98,14 +98,14 @@ void Produit(const OPP::MPI::Torus &torus,
   const int L = r * r; // Total size of each block
 
   // Allocate memory for send/receive buffers
-  float *send_bufferA = new float[L];
-  float *send_bufferB = new float[L];
+  auto *send_bufferA = new float[L];
+  auto *send_bufferB = new float[L];
 
   // Initialize buffers and result matrix
   init(A, B, C, send_bufferA, send_bufferB, r);
 
   // Allocate memory for receiving buffer
-  float *recv_bufferA = new float[L];
+  auto *recv_bufferA = new float[L];
 
   // Perform matrix multiplication using Fox's algorithm
   for (int k = 0; k < n; ++k) {
