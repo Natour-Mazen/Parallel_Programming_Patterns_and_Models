@@ -79,8 +79,8 @@ void Produit(const OPP::MPI::Torus &torus,
   const int L = r * r;
 
   // Allocate memory for buffers
-  float *bufferA = new float[L];
-  float *bufferB = new float[L];
+  auto *bufferA = new float[L];
+  auto *bufferB = new float[L];
 
   // Initialize buffers and result matrix
   init(A, B, C, bufferA, bufferB, r);
